@@ -13,13 +13,17 @@ public class StanfordTokenizer implements Tokenizer {
 	/**
 	 * Factory for the tokenizer
 	 */
-	private PTBTokenizerFactory<CoreLabel> factory;
+	public PTBTokenizerFactory<CoreLabel> factory;
 	
 	public StanfordTokenizer(){
-		factory = PTBTokenizerFactory.newCoreLabelTokenizerFactory("normalizeParentheses=false,"
-																+ "normalizeOtherBrackets=false,"
+		this(false, false);
+	}
+	
+	public StanfordTokenizer(boolean normalizeParentheses, boolean unicodeQuotes){
+		factory = PTBTokenizerFactory.newCoreLabelTokenizerFactory("normalizeParentheses="+normalizeParentheses+","
+																+ "normalizeOtherBrackets="+normalizeParentheses+","
 																+ "latexQuotes=false,"
-																+ "unicodeQuotes=true,"
+																+ "unicodeQuotes="+unicodeQuotes+","
 																+ "invertible=true");
 	}
 	

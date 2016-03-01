@@ -27,5 +27,10 @@ public class NLP4JLemmatizer extends EnglishLemmatizer{
 		String lemma = lemmatizer.lemmatize(word, pos);
 		return lemma;
 	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
+	}
 
 }

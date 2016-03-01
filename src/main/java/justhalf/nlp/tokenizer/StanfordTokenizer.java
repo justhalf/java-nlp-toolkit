@@ -42,4 +42,9 @@ public class StanfordTokenizer implements Tokenizer {
 		List<CoreLabel> tokens = tokenizer.tokenize();
 		return tokens;
 	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
+	}
 }

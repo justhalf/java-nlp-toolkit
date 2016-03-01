@@ -9,11 +9,10 @@ import edu.stanford.nlp.ling.CoreLabel;
 
 public class RegexTokenizer implements Tokenizer {
 	
-	public static final String DEFAULT_REGEX = 
-			"[ \\t\\r\\n]+|" // Whitespace
-			+ "((?<=[\\w\\p{IsL}])(?=[^\\w\\p{IsL}]))|" // Previous char is letter, next is whitespace
-			+ "((?<=[^\\w\\p{IsL}])(?=[\\w\\p{IsL}]))|" // Previous char is whitespace, next is letter
-			+ "$"; // End of string
+	public static final String DEFAULT_REGEX =
+			"[ \\t\\r\\n]+|"
+			+ "((?<=[\\w\\p{IsL}])(?=[^\\w\\p{IsL}]))|" // Previous char is letter, next is non-letter
+			+ "((?<=[^\\w\\p{IsL}])(?=[\\w\\p{IsL}]))"; // Previous char is non-letter, next is letter
 	
 	public Pattern pattern;
 
@@ -44,12 +43,33 @@ public class RegexTokenizer implements Tokenizer {
 		while(matcher.find()){
 			int start = matcher.start();
 			int end = matcher.end();
+			if(start == lastEndPos && end == lastEndPos){
+				continue;
+			}
 			String wordText = sentence.substring(lastEndPos, start);
 			String betweenText = sentence.substring(start, end);
 			CoreLabel word = new CoreLabel();
 			word.setBefore(lastBetweenText);
 			word.setBeginPosition(lastEndPos);
 			word.setEndPosition(start);
+			word.setValue(wordText);
+			word.setWord(wordText);
+			word.setOriginalText(wordText);
+			word.setAfter(betweenText);
+			lastEndPos = end;
+			lastBetweenText = betweenText;
+			result.add(word);
+		}
+		if(lastEndPos != sentence.length()){
+			int start = sentence.length();
+			int end = sentence.length();
+			String wordText = sentence.substring(lastEndPos, start);
+			String betweenText = sentence.substring(start, end);
+			CoreLabel word = new CoreLabel();
+			word.setBefore(lastBetweenText);
+			word.setBeginPosition(lastEndPos);
+			word.setEndPosition(start);
+			word.setValue(wordText);
 			word.setWord(wordText);
 			word.setOriginalText(wordText);
 			word.setAfter(betweenText);
@@ -58,6 +78,11 @@ public class RegexTokenizer implements Tokenizer {
 			result.add(word);
 		}
 		return result;
+	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
 	}
 
 }

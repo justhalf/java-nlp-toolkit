@@ -42,5 +42,10 @@ public class StanfordPOSTagger implements POSTagger {
 		tagger.tagCoreLabels(sentence);
 		return sentence;
 	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
+	}
 
 }

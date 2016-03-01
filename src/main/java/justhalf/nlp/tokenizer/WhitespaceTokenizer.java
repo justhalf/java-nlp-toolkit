@@ -17,5 +17,10 @@ public class WhitespaceTokenizer implements Tokenizer {
 	public List<CoreLabel> tokenize(String sentence) {
 		return regexTokenizer.tokenize(sentence);
 	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
+	}
 
 }

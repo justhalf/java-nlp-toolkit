@@ -44,6 +44,8 @@ public class StanfordSentenceSplitter implements SentenceSplitter {
 		for(List<CoreLabel> sentenceTokenized: splitAndTokenize(input)){
 			StringBuilder sentenceText = new StringBuilder();
 			int sentenceBegin = sentenceTokenized.get(0).beginPosition();
+			String before = sentenceTokenized.get(0).before();
+			String after = sentenceTokenized.get(sentenceTokenized.size()-1).after();
 			int lastIndex = -1;
 			for(CoreLabel word: sentenceTokenized){
 				int curIndex = word.beginPosition();
@@ -55,16 +57,18 @@ public class StanfordSentenceSplitter implements SentenceSplitter {
 				lastIndex = word.endPosition();
 			}
 			CoreLabel sentence = new CoreLabel();
+			sentence.setBefore(before);
+			sentence.setAfter(after);
 			sentence.setBeginPosition(sentenceBegin);
 			sentence.setEndPosition(lastIndex);
 			sentence.setOriginalText(sentenceText.toString());
 			sentence.setWord(sentenceText.toString());
+			sentence.setValue(sentenceText.toString());
 			sentenceList.add(sentence);
 		}
 		return sentenceList;
 	}
 	
-	@Override
 	public List<List<CoreLabel>> splitAndTokenize(String input){
 		DocumentPreprocessor splitter = new DocumentPreprocessor(new StringReader(input));
 		splitter.setTokenizerFactory(tokenizerFactory);
@@ -77,5 +81,10 @@ public class StanfordSentenceSplitter implements SentenceSplitter {
 			sentenceList.add(sentence);
 		}
 		return sentenceList;
+	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
 	}
 }

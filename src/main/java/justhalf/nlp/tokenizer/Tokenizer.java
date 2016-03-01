@@ -3,8 +3,9 @@ package justhalf.nlp.tokenizer;
 import java.util.List;
 
 import edu.stanford.nlp.ling.CoreLabel;
+import justhalf.nlp.NLPInterface;
 
-public interface Tokenizer {
+public interface Tokenizer extends NLPInterface{
 	
 	/**
 	 * Tokenize the given sentence into an array of String

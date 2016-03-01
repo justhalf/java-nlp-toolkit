@@ -15,12 +15,19 @@ public class StanfordSentenceParser implements SentenceParser {
 		parser = LexicalizedParser.loadModel(MODEL_LEXICAL);
 	}
 
+	@Override
 	public Tree parse(String sentence) {
 		return parser.parse(sentence);
 	}
-
+	
+	@Override
 	public Tree parse(List<String> sentence) {
 		return parser.parseStrings(sentence);
+	}
+	
+	@Override
+	public boolean isThreadSafe(){
+		return true;
 	}
 
 }

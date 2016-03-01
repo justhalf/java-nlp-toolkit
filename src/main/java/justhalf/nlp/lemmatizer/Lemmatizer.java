@@ -1,6 +1,8 @@
 package justhalf.nlp.lemmatizer;
 
-public interface Lemmatizer {
+import justhalf.nlp.NLPInterface;
+
+public interface Lemmatizer extends NLPInterface{
 	public String lemmatize(String word);
 	public String lemmatize(String word, String pos);
 }

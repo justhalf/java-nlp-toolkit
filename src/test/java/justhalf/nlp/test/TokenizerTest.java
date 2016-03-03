@@ -55,8 +55,8 @@ public class TokenizerTest extends TestHelper {
 	
 	@AfterClass
 	public static void tearDown(){
-		for(String lemmatizer: counter.keySet()){
-			System.out.println(String.format("[%s] got %d/%d tests correct!", lemmatizer, counter.get(lemmatizer), testCases.length));
+		for(String tokenizer: counter.keySet()){
+			System.out.println(String.format("[%s] got %d/%d tests correct!", tokenizer, counter.get(tokenizer), testCases.length));
 		}
 	}
 

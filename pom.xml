@@ -5,6 +5,12 @@
   <version>0.0.2-SNAPSHOT</version>
   <name>Java NLP Toolkit</name>
   <description>A collection of various Java NLP libraries</description>
+  <repositories>
+      <repository>
+          <id>bionlp-sourceforge</id>
+          <url>http://svn.code.sf.net/p/bionlp/code/repo</url>
+      </repository>
+  </repositories>
   <dependencies>
 	<dependency>
 		<groupId>edu.emory.mathcs.nlp</groupId>
@@ -25,15 +31,61 @@
         <optional>true</optional>
 		<scope>runtime</scope>
 	</dependency>
+    <dependency>
+        <groupId>edu.emory.clir</groupId>
+        <artifactId>clearnlp</artifactId>
+        <version>3.1.2</version>
+        <optional>true</optional>
+        <exclusions>
+        	<exclusion>
+        		<artifactId>log4j</artifactId>
+        		<groupId>log4j</groupId>
+        	</exclusion>
+        </exclusions>
+    </dependency>
+    <dependency>
+        <groupId>edu.emory.clir</groupId>
+        <artifactId>clearnlp-dictionary</artifactId>
+        <version>3.1</version>
+        <optional>true</optional>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>edu.emory.clir</groupId>
+        <artifactId>clearnlp-global-lexica</artifactId>
+        <version>3.1</version>
+        <optional>true</optional>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>edu.emory.clir</groupId>
+        <artifactId>clearnlp-medical-en-dep</artifactId>
+        <version>3.1</version>
+        <optional>true</optional>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>edu.emory.clir</groupId>
+        <artifactId>clearnlp-medical-en-pos</artifactId>
+        <version>3.1</version>
+        <optional>true</optional>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>edu.ucdenver.ccp</groupId>
+        <artifactId>biolemmatizer-core</artifactId>
+        <version>1.2</version>
+        <optional>true</optional>
+    </dependency>
 	<dependency>
   		<groupId>edu.stanford.nlp</groupId>
   		<artifactId>stanford-corenlp</artifactId>
-  		<version>3.5.2</version>
+  		<version>3.6.0</version>
   	</dependency>
     <dependency>
         <groupId>edu.stanford.nlp</groupId>
         <artifactId>stanford-corenlp</artifactId>
-        <version>3.5.2</version>
+        <version>3.6.0</version>
         <classifier>models</classifier>
         <scope>runtime</scope>
     </dependency>

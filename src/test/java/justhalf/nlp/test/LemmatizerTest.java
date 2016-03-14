@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
+import justhalf.nlp.lemmatizer.BioLemmatizer;
 import justhalf.nlp.lemmatizer.Lemmatizer;
 import justhalf.nlp.lemmatizer.NLP4JLemmatizer;
 
@@ -32,12 +33,14 @@ public class LemmatizerTest extends TestHelper {
 	};
 	
 	private static Lemmatizer nlp4jLemmatizer;
+	private static Lemmatizer bioLemmatizer;
 	
 	private static Map<String, Integer> counter;
 	
 	@BeforeClass
 	public static void setUp(){
 		nlp4jLemmatizer = new NLP4JLemmatizer();
+		bioLemmatizer = new BioLemmatizer();
 		counter = new HashMap<String, Integer>();
 	}
 	
@@ -52,12 +55,25 @@ public class LemmatizerTest extends TestHelper {
 	
 	@Test
 	@Parameters(method="paramsForLemmatizer")
-	public void testLemmatizer(String testCase, String expected){
+	public void testNLP4JLemmatizer(String testCase, String expected){
 		testOne(nlp4jLemmatizer, expected, testCase);
 		addCount(counter, "NLP4J Lemmatizer");
 	}
 	
+	@Test
+	@Parameters(method="paramsForLemmatizer")
+	public void testBioLemmatizer(String testCase, String expected){
+		testOne(bioLemmatizer, expected, testCase);
+		addCount(counter, "BioLemmatizer");
+	}
+	
 	private void testOne(Lemmatizer lemmatizer, String expected, String testCase){
+		String lemma = runOne(lemmatizer, testCase);
+		String actual = lemma;
+	    Assume.assumeTrue(messageOnNotEqual(expected, actual), expected.equals(actual));
+	}
+
+	private static String runOne(Lemmatizer lemmatizer, String testCase) {
 		String[] tokens = testCase.split(" ");
 		String word = tokens[0];
 		String pos = null;
@@ -70,8 +86,7 @@ public class LemmatizerTest extends TestHelper {
 		} else {
 			lemma = lemmatizer.lemmatize(word, pos);
 		}
-		String actual = lemma;
-	    Assume.assumeTrue(messageOnNotEqual(expected, actual), expected.equals(actual));
+		return lemma;
 	}
 
 	public static void main(String[] args){
@@ -79,14 +94,8 @@ public class LemmatizerTest extends TestHelper {
 		Scanner sc = new Scanner(System.in);
 		String line;
 		while((line = getNextLine(sc)) != null){
-			String[] tokens = line.split(" ");
-			String word = tokens[0];
-			if(tokens.length > 1){
-				String pos = tokens[1];
-				System.out.println(nlp4jLemmatizer.lemmatize(word, pos));
-			} else {
-				System.out.println(nlp4jLemmatizer.lemmatize(word));
-			}
+			System.out.println("NLP4J Lemmatizer: "+runOne(nlp4jLemmatizer, line));
+			System.out.println("BioLemmatizer   : "+runOne(bioLemmatizer, line));
 		}
 		sc.close();
 	}

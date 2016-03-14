@@ -16,6 +16,7 @@ import edu.stanford.nlp.trees.TypedDependency;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import justhalf.nlp.depparser.DepParser;
+import justhalf.nlp.depparser.MedicalDepParser;
 import justhalf.nlp.depparser.StanfordDepParser;
 import justhalf.nlp.postagger.POSTagger;
 import justhalf.nlp.postagger.StanfordPOSTagger;
@@ -25,13 +26,17 @@ import justhalf.nlp.tokenizer.Tokenizer;
 @RunWith(JUnitParamsRunner.class)
 public class DepParserTest extends TestHelper {
 	
-	private static final String STANFORD = "Stanford Dependency Parser";
+	private static final String STANFORD =  "Stanford Dependency Parser ";
+	private static final String UNIVERSAL = "Universal Dependency Parser";
+	private static final String MEDICAL =   "Medical Dependency Parser  ";
 
 	private static String[][] testCases = new String[][]{
 		new String[]{"I work in Singapore.", "[nsubj(work-2, I-1), root(ROOT-0, work-2), case(Singapore-4, in-3), nmod:in(work-2, Singapore-4), punct(work-2, .-5)]"},
 	};
 
+	private static DepParser universalDepParser;
 	private static DepParser stanfordDepParser;
+	private static DepParser medicalDepParser;
 	private static POSTagger posTagger;
 	private static Tokenizer tokenizer;
 	
@@ -41,7 +46,9 @@ public class DepParserTest extends TestHelper {
 	public static void setUp(){
 		tokenizer = new StanfordTokenizer();
 		posTagger = new StanfordPOSTagger();
-		stanfordDepParser = new StanfordDepParser();
+		universalDepParser = new StanfordDepParser(StanfordDepParser.UNIVERSAL_ENGLISH);
+		stanfordDepParser = new StanfordDepParser(StanfordDepParser.STANDARD_ENGLISH);
+		medicalDepParser = new MedicalDepParser();
 		counter = new HashMap<String, Integer>();
 	}
 	
@@ -53,6 +60,14 @@ public class DepParserTest extends TestHelper {
 	}
 
 	Object[] paramsForDepParser(){ return testCases; }
+	
+	@Test
+	@Parameters(method="paramsForDepParser")
+	public void testUniversalDepParser(String testCase, String expected){
+		List<CoreLabel> posTagged = posTagger.tagCoreLabels(tokenizer.tokenize(testCase));
+		testOne(universalDepParser, expected, posTagged);
+		addCount(counter, UNIVERSAL);
+	}
 
 	@Test
 	@Parameters(method="paramsForDepParser")
@@ -60,6 +75,14 @@ public class DepParserTest extends TestHelper {
 		List<CoreLabel> posTagged = posTagger.tagCoreLabels(tokenizer.tokenize(testCase));
 		testOne(stanfordDepParser, expected, posTagged);
 		addCount(counter, STANFORD);
+	}
+	
+	@Test
+	@Parameters(method="paramsForDepParser")
+	public void testMedicalDepParser(String testCase, String expected){
+		List<CoreLabel> posTagged = posTagger.tagCoreLabels(tokenizer.tokenize(testCase));
+		testOne(medicalDepParser, expected, posTagged);
+		addCount(counter, MEDICAL);
 	}
 	
 	private void testOne(DepParser posTagger, String expected, List<CoreLabel> testCase){
@@ -78,11 +101,15 @@ public class DepParserTest extends TestHelper {
 		setUp();
 		Scanner sc = new Scanner(System.in);
 
-		String line = "The horce raced past the barn fell.";
+		String line = "The horse raced past the barn fell.";
+		runOne(universalDepParser, line, UNIVERSAL);
 		runOne(stanfordDepParser, line, STANFORD);
+		runOne(medicalDepParser, line, MEDICAL);
 		System.out.println("Enter one sentence at a time");
 		while((line = getNextLine(sc)) != null){
+			runOne(universalDepParser, line, UNIVERSAL);
 			runOne(stanfordDepParser, line, STANFORD);
+			runOne(medicalDepParser, line, MEDICAL);
 		}
 		sc.close();
 	}

@@ -6,11 +6,8 @@
     </Console>
   </Appenders>
   <Loggers>
-    <Root level="error">
+    <Root level="warn">
       <AppenderRef ref="Console"/>
     </Root>
-    <Logger name="edu.emory.mathcs.nlp.common.util.BinUtils" additivity="false" level="info">
-        <AppenderRef ref="Console"/>
-    </Logger>
   </Loggers>
 </Configuration>

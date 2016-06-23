@@ -8,6 +8,9 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.process.PTBTokenizer;
 import edu.stanford.nlp.process.PTBTokenizer.PTBTokenizerFactory;
 
+/**
+ * An implementation of {@link Tokenizer} using Stanford CoreNLP
+ */
 public class StanfordTokenizer implements Tokenizer {
 	
 	/**
@@ -27,6 +30,7 @@ public class StanfordTokenizer implements Tokenizer {
 																+ "invertible=true");
 	}
 	
+	@Override
 	public String[] tokenizeToString(String sentence){
 		List<CoreLabel> tokens = tokenize(sentence);
 		List<String> result = new ArrayList<String>();
@@ -36,6 +40,7 @@ public class StanfordTokenizer implements Tokenizer {
 		return result.toArray(new String[result.size()]);
 	}
 	
+	@Override
 	public List<CoreLabel> tokenize(String sentence){
 		StringReader reader = new StringReader(sentence);
 		PTBTokenizer<CoreLabel> tokenizer = (PTBTokenizer<CoreLabel>)factory.getTokenizer(reader);

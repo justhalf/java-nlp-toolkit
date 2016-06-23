@@ -9,9 +9,19 @@ import edu.stanford.nlp.parser.nndep.DependencyParser;
 import edu.stanford.nlp.trees.GrammaticalStructure;
 import edu.stanford.nlp.trees.TypedDependency;
 
+/**
+ * An implementation of {@link DepParser} using Stanford CoreNLP
+ */
 public class StanfordDepParser implements DepParser {
 	
+	/** The path to default dependency parser model for English with standard labels */
 	public static final String STANDARD_ENGLISH = "edu/stanford/nlp/models/parser/nndep/english_SD.gz";
+
+	/**
+	 * The path to default dependency parser model for English with universal labels<br>
+	 * See <a href="http://universaldependencies.org/">http://universaldependencies.org/</a> for more information
+	 * on Universal Dependencies
+	 */
 	public static final String UNIVERSAL_ENGLISH = "edu/stanford/nlp/models/parser/nndep/english_UD.gz";
 	
 	public DependencyParser dependencyParser;

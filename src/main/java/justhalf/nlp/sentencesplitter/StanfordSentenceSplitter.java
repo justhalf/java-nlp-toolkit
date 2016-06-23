@@ -10,6 +10,9 @@ import edu.stanford.nlp.process.DocumentPreprocessor;
 import edu.stanford.nlp.process.PTBTokenizer.PTBTokenizerFactory;
 import edu.stanford.nlp.process.TokenizerFactory;
 
+/**
+ * An implementation of {@link SentenceSplitter} using Stanford CoreNLP
+ */
 public class StanfordSentenceSplitter implements SentenceSplitter {
 	
 	private TokenizerFactory<CoreLabel> tokenizerFactory;
@@ -69,6 +72,14 @@ public class StanfordSentenceSplitter implements SentenceSplitter {
 		return sentenceList;
 	}
 	
+	/**
+	 * Stanford CoreNLP's document processor also tokenize the input sentence while splitting 
+	 * the sentence. This method will return the original output of Stanford CoreNLP
+	 * @param input
+	 * 		A text which contains possibly multiple sentences.
+	 * @return
+	 * 		A list of sentences, each represented as a list of CoreLabel objects.
+	 */
 	public List<List<CoreLabel>> splitAndTokenize(String input){
 		DocumentPreprocessor splitter = new DocumentPreprocessor(new StringReader(input));
 		splitter.setTokenizerFactory(tokenizerFactory);

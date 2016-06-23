@@ -8,8 +8,6 @@ import junit.framework.ComparisonCompactor;
 
 /**
  * Generic helper class for test classes
- * @author Aldrian Obaja <aldrianobaja.m@gmail.com>
- *
  */
 public class TestHelper {
 	

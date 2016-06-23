@@ -6,6 +6,11 @@ import org.apache.logging.log4j.message.StringFormatterMessageFactory;
 
 import edu.ucdenver.ccp.nlp.biolemmatizer.LemmataEntry;
 
+/**
+ * An implementation of {@link Lemmatizer} using <a href="http://biolemmatizer.sourceforge.net/">BioLemmatizer</a><br>
+ * 
+ * This assumes a medical domain.
+ */
 public class BioLemmatizer extends EnglishLemmatizer {
 	
 	public static final Logger LOGGER = LogManager.getLogger(BioLemmatizer.class,

@@ -7,6 +7,9 @@ import edu.emory.mathcs.nlp.component.template.node.NLPNode;
 import edu.emory.mathcs.nlp.tokenization.EnglishTokenizer;
 import edu.stanford.nlp.ling.CoreLabel;
 
+/**
+ * An implementation of {@link SentenceSplitter} using NLP4J
+ */
 public class NLP4JSentenceSplitter implements SentenceSplitter {
 	
 	public edu.emory.mathcs.nlp.tokenization.Tokenizer nlp4jTokenizer;

@@ -28,6 +28,12 @@ import edu.stanford.nlp.trees.GrammaticalStructure;
 import edu.stanford.nlp.trees.TreeGraphNode;
 import edu.stanford.nlp.trees.TypedDependency;
 
+/**
+ * An implementation of {@link DepParser} using ClearNLP<br>
+ * 
+ * This dependency parser was trained on medical domain.
+ * See <a href="https://clearnlp.wikispaces.com/models">https://clearnlp.wikispaces.com/models</a> for more details.
+ */
 public class MedicalDepParser implements DepParser {
 	
 	public static final Logger LOGGER = LogManager.getLogger(MedicalDepParser.class, StringFormatterMessageFactory.INSTANCE);

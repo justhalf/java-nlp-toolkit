@@ -11,6 +11,9 @@ import edu.emory.mathcs.nlp.decode.NLPDecoder;
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.ling.CoreLabel;
 
+/**
+ * An implementation of {@link POSTagger} using POS tagger from NLP4J
+ */
 public class NLP4JPOSTagger implements POSTagger {
 	
 	public NLPDecoder nlp4jPOSTagger;

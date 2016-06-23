@@ -7,8 +7,12 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.StringUtils;
 
+/**
+ * An implementation of {@link POSTagger} using POS tagger from Stanford CoreNLP
+ */
 public class StanfordPOSTagger implements POSTagger {
 	
+	/** The path to default model */
 	public static final String MODEL_DEFAULT = MaxentTagger.DEFAULT_JAR_PATH;
 	
 	public MaxentTagger tagger;

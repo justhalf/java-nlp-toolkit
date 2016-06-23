@@ -7,6 +7,11 @@ import java.util.regex.Pattern;
 
 import edu.stanford.nlp.ling.CoreLabel;
 
+/**
+ * An implementation of {@link Tokenizer} using simple regular expression<br>
+ * 
+ * The regular expression is inspired by the wordpunct_tokenize method in NLTK Python library
+ */
 public class RegexTokenizer implements Tokenizer {
 	
 	public static final String DEFAULT_REGEX =

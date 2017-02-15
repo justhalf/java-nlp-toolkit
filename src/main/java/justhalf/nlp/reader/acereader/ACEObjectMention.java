@@ -10,6 +10,7 @@ public abstract class ACEObjectMention<T extends ACEObject> {
 	String id;
 	String fullID;
 	String shortID;
+	/** The main span of this object. */
 	public Span span;
 	public String text;
 	public T parent;

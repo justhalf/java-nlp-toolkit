@@ -18,6 +18,14 @@ public class Span implements Comparable<Span>, Serializable {
 		this.end = end;
 	}
 	
+	/**
+	 * Returns the length of this span.
+	 * @return The length of this span.
+	 */
+	public int length(){
+		return this.end - this.start;
+	}
+	
 	public boolean contains(Span s){
 		return start <= s.start && end >= s.end;
 	}

@@ -22,12 +22,49 @@ public class ACEEntity extends ACEObject {
 	 *
 	 */
 	public static enum ACEEntityType implements ACEObjectType {
+		/**
+		 * Person entities are limited to humans.
+		 * A person may be a single individual or a group.
+		 */
 		PER("Person"),
+		
+		/**
+		 * Organization entities are limited to corporations, agencies, and other groups of people
+		 * defined by an established organizational structure.
+		 */
 		ORG("Organization"),
+		
+		/**
+		 * Location entities are limited to geographical entities such as geographical areas and landmasses,
+		 * bodies of water, and geological formations.
+		 */
 		LOC("Location"),
+		
+		/**
+		 * Geo-political Entity<br>
+		 * GPE entities are geographical regions defined by political and/or social groups.
+		 * A GPE entity subsumes and does not distinguish between a nation, its region, its government,
+		 * or its people.
+		 */
 		GPE("Geo-Political Entity"),
+		
+		/**
+		 * Facility entities are limited to buildings and other permanent man-made structures and
+		 * real estate improvements.
+		 */
 		FAC("Facility"),
+		
+		/**
+		 * A vehicle entity is a physical device primarily designed to move an object from one location
+		 * to another, by (for example) carrying, pulling, or pushing the transported object.
+		 * Vehicle entities may or may not have their own power source.
+		 */
 		VEH("Vehicle"),
+		
+		/**
+		 * Weapon entities are limited to physical devices primarily used as instruments for physically
+		 * harming or destroying animals (often humans), buildings, or other constructions.
+		 */
 		WEA("Weapon"),
 		;
 		

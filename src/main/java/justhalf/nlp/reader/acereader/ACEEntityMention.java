@@ -262,6 +262,9 @@ public class ACEEntityMention extends ACEObjectMention<ACEEntity> implements Com
 			   (mention.span.start < span.end && mention.span.start >= span.start);
 	}
 	
+	/**
+	 * Two {@link ACEEntityMention}s are the same iff the span, headSpan, and the label are the same
+	 */
 	public boolean equals(Object o){
 		if(o instanceof ACEEntityMention){
 			ACEEntityMention s = (ACEEntityMention)o;

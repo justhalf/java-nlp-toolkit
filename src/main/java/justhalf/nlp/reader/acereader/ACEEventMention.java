@@ -4,10 +4,15 @@ import edu.stanford.nlp.util.Comparators;
 
 public class ACEEventMention extends ACEObjectMention<ACEEvent> implements Comparable<ACEEventMention> {
 	
+	/** The span of the containing sentence that describes this event. */
 	public Span scopeSpan;
+	/** The span of the anchor word (the trigger). */
 	public Span anchorSpan;
+	/** The sentence that describes this event. */
 	public String scopeText;
+	/** The anchor word that trigger this event. */
 	public String anchorText;
+	/** The arguments of this event. */
 	public ACEObjectMention<?>[] args;
 
 	public ACEEventMention(String id, Span span, String text, ACEEvent parent,

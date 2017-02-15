@@ -24,12 +24,52 @@ import org.xml.sax.SAXException;
 
 import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.util.XMLUtils;
+import justhalf.nlp.reader.acereader.ACERelation.ACERelationType;
 
 /**
- * Represents an ACE document<br>
- * The data structure defined here is based on the specifications found here:
+ * <p>Represents an ACE document</p>
+ * 
+ * <p>The data structure defined here is based on the specifications found here:
  * <a href="https://www.ldc.upenn.edu/collaborations/past-projects/ace/annotation-tasks-and-specifications">
- * https://www.ldc.upenn.edu/collaborations/past-projects/ace/annotation-tasks-and-specifications</a>
+ * https://www.ldc.upenn.edu/collaborations/past-projects/ace/annotation-tasks-and-specifications</a></p>
+ * 
+ * <p>This class can represent either documents from ACE 2004 and ACE 2005, as marked by the flag
+ * {@link #versionIsACE2004}, which is detected automatically based on the XML header of the
+ * source SGM file.</p>
+ * 
+ * <p>The flag {@link #textInLowercase} marks whether the original source text is all in lowercase,
+ * as in the case for Fisher transcript corpus in ACE 2004.</p>
+ * 
+ * <p>There are various list of canonical entities, grouped by class:
+ * <ul>
+ * <li>{@link #entities}: for named entities</li>
+ * <li>{@link #relations}: for relations</li>
+ * <li>{@link #events}: for events (only in ACE 2005)</li>
+ * <li>{@link #timexes}: for time expression (only in ACE 2005)</li>
+ * <li>{@link #values}: for other values (only in ACE 2005)</li>
+ * </ul>
+ * And also the associated mentions:
+ * <ul>
+ * <li>{@link #entityMentions}: for named entities</li>
+ * <li>{@link #relationMentions}: for relations</li>
+ * <li>{@link #eventMentions}: for events (only in ACE 2005)</li>
+ * <li>{@link #timexMentions}: for time expression (only in ACE 2005)</li>
+ * <li>{@link #valueMentions}: for other values (only in ACE 2005)</li>
+ * </ul>
+ * 
+ * The canonical entities typically contain a list of mentions (except {@link ACERelationType#METONYMY}
+ * relations), which will actually mark the relevant spans in the text.
+ * 
+ * Maps of entity IDs and entity mention IDs to the corresponding objects are
+ * available as {@link #objectsById} and {@link #objectMentionsById}.
+ * </p>
+ * 
+ * <p>The {@link #uri} stores the filename as given in the URI attribute in source_file tag
+ * in the APF file.</p>
+ * 
+ * <p>The text (the relevant annotated texts) and full text (everything in the document) are available as
+ * {@link #text} and {@link #fullText}.</p>
+ * 
  * @author Aldrian Obaja (aldrianobaja.m@gmail.com)
  *
  */
@@ -50,7 +90,7 @@ public class ACEDocument implements Serializable{
 	public boolean versionIsACE2004;
 	public boolean textInLowercase;
 	public List<ACEEntity> entities;
-	public List<ACEEntityMention> mentions;
+	public List<ACEEntityMention> entityMentions;
 	public List<ACEValue> values;
 	public List<ACEValueMention> valueMentions;
 	public List<ACETimex> timexes;
@@ -71,6 +111,14 @@ public class ACEDocument implements Serializable{
 			 IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(apfFilename));
 	}
 	
+	/**
+	 * Read an ACE document from the given source sgmStream and annotations apfStream.<br>
+	 * 
+	 * @param sgmStream
+	 * @param apfStream
+	 * @throws IOException
+	 * @throws SAXException
+	 */
 	public ACEDocument(InputStream sgmStream, InputStream apfStream) throws IOException, SAXException{
 		DOMParser parser = new DOMParser();
 		String sgmText = IOUtils.slurpInputStream(sgmStream, "UTF-8");
@@ -89,7 +137,7 @@ public class ACEDocument implements Serializable{
 		this.offset = fullText.indexOf(text);
 		
 		this.entities = new ArrayList<ACEEntity>();
-		this.mentions = new ArrayList<ACEEntityMention>();
+		this.entityMentions = new ArrayList<ACEEntityMention>();
 		this.values = new ArrayList<ACEValue>();
 		this.valueMentions = new ArrayList<ACEValueMention>();
 		this.timexes = new ArrayList<ACETimex>();
@@ -117,7 +165,7 @@ public class ACEDocument implements Serializable{
 	private void setMetadata(Document apf){
 		NamedNodeMap sourceAttributes = apf.getElementsByTagName("SOURCE_FILE").item(0).getAttributes();
 		String version = getAttribute(sourceAttributes, "VERSION");
-		this.versionIsACE2004 = version.equals("4.0");
+		this.versionIsACE2004 = version.equals("4.0"); // ACE 2005 doesn't have version
 		this.uri = getAttribute(sourceAttributes, "URI");
 	}
 	
@@ -145,14 +193,14 @@ public class ACEDocument implements Serializable{
 				Node entityMention = entityMentions.item(j);
 				ACEEntityMention mention = getMention(entityMention, aceEntity);
 				aceEntity.addMention(mention);
-				this.mentions.add(mention);
+				this.entityMentions.add(mention);
 				this.objectMentionsById.put(mention.getFullID(), mention);
 			}
 			this.entities.add(aceEntity);
 			this.objectsById.put(id, aceEntity);
 		}
-		Collections.sort(this.mentions);
-		checkAndFixMentions(this.mentions);
+		Collections.sort(this.entityMentions);
+		checkAndFixMentions(this.entityMentions);
 	}
 	
 	private void checkAndFixMentions(List<? extends ACEObjectMention<?>> mentions){
@@ -485,7 +533,7 @@ public class ACEDocument implements Serializable{
 		return result;
 	}
 	
-	public static String getAttribute(NamedNodeMap attrs, String attrName){
+	private static String getAttribute(NamedNodeMap attrs, String attrName){
 		String result = "";
 		try{
 			result = attrs.getNamedItem(attrName.toLowerCase()).getTextContent();
@@ -520,6 +568,8 @@ public class ACEDocument implements Serializable{
 		String result = xml.replaceAll("(?i)&amp;", "&");
 		result = result.replaceAll("(?i)&lt;", "<");
 		result = result.replaceAll("(?i)&gt;", ">");
+//		result = result.replaceAll("(?i)&lt;", "<");
+//		result = result.replaceAll("(?i)&lt;", "<");
 		return result;
 	}
 }

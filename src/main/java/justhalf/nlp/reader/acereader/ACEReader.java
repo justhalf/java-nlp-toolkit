@@ -763,7 +763,7 @@ public class ACEReader {
 		int end = -1;
 		for(int i=0; i<tokens.size(); i++){
 			CoreLabel token = tokens.get(i);
-			if(token.beginPosition() <= mention.start && token.endPosition() > mention.start&& start == -1){
+			if(token.beginPosition() <= mention.start && token.endPosition() > mention.start && start == -1){
 				start = i;
 			}
 			if(token.beginPosition() < mention.end && token.endPosition() >= mention.end){
@@ -772,7 +772,11 @@ public class ACEReader {
 		}
 		if(start == -1 || end == -1){
 			System.out.println("Mention ["+mention.start+","+mention.end+"] not found in ["+tokens.get(0).beginPosition()+","+tokens.get(tokens.size()-1).endPosition()+"]");
-			System.out.println(tokens);
+			System.out.print("[");
+			for(CoreLabel token: tokens){
+				System.out.print(token.value()+"("+token.beginPosition()+","+token.endPosition()+") ");
+			}
+			System.out.println("]");
 		}
 		return new Span(start, end);
 	}

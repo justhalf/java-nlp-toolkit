@@ -208,47 +208,10 @@ public class ACEDocument implements Serializable{
 		int lastDiff = 0;
 		List<ACEObjectMention<?>> toBeRemoved = new ArrayList<ACEObjectMention<?>>();
 		for(ACEObjectMention<?> mention: mentions){
-			String originalText = mention.text;
-			String unescapedOriginalText = unescape(originalText);
-			String actualText = null;
-			try{
-				actualText = mention.toString(text);
-			} catch (StringIndexOutOfBoundsException e){
-				actualText = "";
-				if(CHECK_OOB_MENTIONS){
-					if(!(mention instanceof ACETimexMention)){
-						System.out.printf("%-45s[%d,%d]: %s\n", mention.getFullID(), mention.span.start, mention.span.end, unescapedOriginalText.replace("\n", " "));
-					}
-				}
+			if(mention instanceof ACEEntityMention){
+				fixSpan(lastDiff, toBeRemoved, mention, ((ACEEntityMention)mention).headSpan, ((ACEEntityMention)mention).headText);
 			}
-			if(CHECK_ESCAPED_ENTITIES){
-				if(unescapedOriginalText.contains("&")){
-					System.out.println(unescapedOriginalText.contains(";")+" "+unescapedOriginalText.replace("\n", " "));
-				}
-			}
-			if(!actualText.equals(unescapedOriginalText)){
-				int index = text.lastIndexOf(unescapedOriginalText, Math.min(text.length(), mention.span.start-lastDiff));
-				if(index == -1){
-					if(REMOVE_OOB_MENTIONS){
-						toBeRemoved.add(mention);
-						continue;
-					}
-					System.err.println("Cannot find "+unescapedOriginalText+" in "+text);
-					throw new RuntimeException();
-				}
-				int diff = mention.span.start - index;
-				mention.span.start = index;
-				mention.span.end = index+unescapedOriginalText.length();
-				lastDiff = diff;
-				if(CHECK_OFFSET_TEXT){
-					if(diff > unescapedOriginalText.length()){
-						System.out.printf("%-45s[%4d->%4d]: %s_%s_%s\n", mention.getFullID(), index+diff, index,
-								text.substring(Math.max(0, mention.span.start-10), mention.span.start).replace("\n", " "),
-								unescapedOriginalText.replace("\n", " "),
-								text.substring(mention.span.end, Math.min(text.length(), mention.span.end+10)).replace("\n", " "));
-					}
-				}
-			}
+			lastDiff = fixSpan(lastDiff, toBeRemoved, mention, mention.span, mention.text);
 		}
 		for(ACEObjectMention<?> mention: toBeRemoved){
 			mentions.remove(mention);
@@ -263,6 +226,52 @@ public class ACEDocument implements Serializable{
 		if(toBeRemoved.size() > 0){
 			System.out.println("Removed "+toBeRemoved.size()+" out-of-bounds mentions from "+uri);
 		}
+	}
+
+	private int fixSpan(int lastDiff, List<ACEObjectMention<?>> toBeRemoved, ACEObjectMention<?> mention,
+			Span span, String text) throws RuntimeException {
+		String originalText = text;
+		String unescapedOriginalText = unescape(originalText);
+		String actualText = null;
+		try{
+			actualText = span.getText(this.text);
+		} catch (StringIndexOutOfBoundsException e){
+			actualText = "";
+			if(CHECK_OOB_MENTIONS){
+				if(!(mention instanceof ACETimexMention)){
+					System.out.printf("%-45s[%d,%d]: %s\n", mention.getFullID(), span.start, span.end, unescapedOriginalText.replace("\n", " "));
+				}
+			}
+		}
+		if(CHECK_ESCAPED_ENTITIES){
+			if(unescapedOriginalText.contains("&")){
+				System.out.println(unescapedOriginalText.contains(";")+" "+unescapedOriginalText.replace("\n", " "));
+			}
+		}
+		if(!actualText.equals(unescapedOriginalText)){
+			int index = this.text.lastIndexOf(unescapedOriginalText, Math.min(this.text.length(), span.start-lastDiff));
+			if(index == -1){
+				if(REMOVE_OOB_MENTIONS){
+					toBeRemoved.add(mention);
+					return lastDiff;
+				}
+				System.err.println("Cannot find "+unescapedOriginalText+" in "+this.text);
+				throw new RuntimeException();
+			}
+			int diff = span.start - index;
+			span.start = index;
+			span.end = index+unescapedOriginalText.length();
+			lastDiff = diff;
+			if(CHECK_OFFSET_TEXT){
+				if(diff > unescapedOriginalText.length()){
+					System.out.printf("%-45s[%4d->%4d]: %s_%s_%s\n", mention.getFullID(), index+diff, index,
+							this.text.substring(Math.max(0, span.start-10), span.start).replace("\n", " "),
+							unescapedOriginalText.replace("\n", " "),
+							this.text.substring(span.end, Math.min(this.text.length(), span.end+10)).replace("\n", " "));
+				}
+			}
+		}
+		return lastDiff;
 	}
 	
 	private ACEEntityMention getMention(Node entityMention, ACEEntity aceEntity){

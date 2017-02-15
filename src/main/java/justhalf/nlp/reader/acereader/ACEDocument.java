@@ -40,7 +40,7 @@ import justhalf.nlp.reader.acereader.ACERelation.ACERelationType;
  * <p>The flag {@link #textInLowercase} marks whether the original source text is all in lowercase,
  * as in the case for Fisher transcript corpus in ACE 2004.</p>
  * 
- * <p>There are various list of canonical entities, grouped by class:
+ * There are various list of canonical entities, grouped by class:
  * <ul>
  * <li>{@link #entities}: for named entities</li>
  * <li>{@link #relations}: for relations</li>
@@ -48,6 +48,7 @@ import justhalf.nlp.reader.acereader.ACERelation.ACERelationType;
  * <li>{@link #timexes}: for time expression (only in ACE 2005)</li>
  * <li>{@link #values}: for other values (only in ACE 2005)</li>
  * </ul>
+ * 
  * And also the associated mentions:
  * <ul>
  * <li>{@link #entityMentions}: for named entities</li>
@@ -57,7 +58,7 @@ import justhalf.nlp.reader.acereader.ACERelation.ACERelationType;
  * <li>{@link #valueMentions}: for other values (only in ACE 2005)</li>
  * </ul>
  * 
- * The canonical entities typically contain a list of mentions (except {@link ACERelationType#METONYMY}
+ * <p>The canonical entities typically contain a list of mentions (except {@link ACERelationType#METONYMY}
  * relations), which will actually mark the relevant spans in the text.
  * 
  * Maps of entity IDs and entity mention IDs to the corresponding objects are

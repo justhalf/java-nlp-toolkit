@@ -778,7 +778,7 @@ public class ACEReader {
 	}
 	
 	/**
-	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link #ACEDocument} objects.
+	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link ACEDocument} objects.
 	 * @param ace2004DirName The path to ACE 2004 directory. Can be null.
 	 * @param ace2005DirName The path to ACE 2005 directory. Can be null.
 	 * @return
@@ -790,7 +790,7 @@ public class ACEReader {
 	}
 	
 	/**
-	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link #ACEDocument} objects.
+	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link ACEDocument} objects.
 	 * @param ace2004DirName The path to ACE 2004 directory. Can be null.
 	 * @param ace2005DirName The path to ACE 2005 directory. Can be null.
 	 * @param ace2004Domains The list of domains for ACE 2004 to be included.
@@ -804,7 +804,7 @@ public class ACEReader {
 	}
 	
 	/**
-	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link #ACEDocument} objects.
+	 * Reads directories containing ACE 2004 and/or ACE 2005 data and return them as {@link ACEDocument} objects.
 	 * @param ace2004DirName The path to ACE 2004 directory. Can be null.
 	 * @param ace2005DirName The path to ACE 2005 directory. Can be null.
 	 * @param ace2004Domains The list of domains for ACE 2004 to be included.

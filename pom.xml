@@ -241,6 +241,7 @@
                 </executions>
                 <configuration>
                     <additionalparam>-Xdoclint:all</additionalparam>
+                    <failOnError>false</failOnError>
                 </configuration>
             </plugin>
 

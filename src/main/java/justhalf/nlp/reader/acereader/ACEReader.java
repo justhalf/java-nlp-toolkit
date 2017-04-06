@@ -12,11 +12,13 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -77,6 +79,9 @@ public class ACEReader {
 		boolean ignoreOverlaps = false;
 		boolean useBILOU = false;
 		boolean splitByDocument = true;
+		boolean shuffle = false;
+		boolean excludeMetadata = false;
+		int shuffleSeed = 31;
 		
 		int argIndex = 0;
 		while(argIndex < args.length){
@@ -106,6 +111,10 @@ public class ACEReader {
 			case "-ace2005ExcludeDomains":
 				ace2005Domains.removeAll(Arrays.asList(args[argIndex+1].split(",")));
 				argIndex += 2;
+				break;
+			case "-excludeMetadata":
+				excludeMetadata = true;
+				argIndex += 1;
 				break;
 			case "-convertEntitiesToInline":
 				convertEntities = true;
@@ -194,6 +203,14 @@ public class ACEReader {
 				splitByDocument = false;
 				argIndex += 1;
 				break;
+			case "-shuffle":
+				shuffle = true;
+				argIndex += 1;
+				break;
+			case "-seed":
+				shuffleSeed = Integer.parseInt(args[argIndex+1]);
+				argIndex += 2;
+				break;
 			case "-h":
 			case "--help":
 				printHelp();
@@ -279,7 +296,7 @@ public class ACEReader {
 		Map<ACEEventType, Integer> eventTypeMentionCount = new HashMap<ACEEventType, Integer>();
 		for(File sgmFile: fileList){
 			try {
-				ACEDocument doc = new ACEDocument(sgmFile.getAbsolutePath());
+				ACEDocument doc = new ACEDocument(sgmFile.getAbsolutePath(), excludeMetadata);
 				docCount++;
 //				printMentions(doc, doc.mentions);
 				
@@ -388,20 +405,21 @@ public class ACEReader {
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2004OutputDir, ace2004Docs, datasplit, convertEntities,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, splitter,
-								toCoNLL, ignoreOverlaps, useBILOU, splitByDocument);
+								toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2005OutputDir, ace2005Docs, datasplit, convertEntities,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null,
-								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument);
+								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 		}
 	}
 
 	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit,
 			boolean convertEntities, Tokenizer tokenizer, POSTagger posTagger, SentenceSplitter splitter,
-			boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU, boolean splitByDocument) throws FileNotFoundException {
+			boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU, boolean splitByDocument,
+			boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
 		List<ACESentence> devSentences = new ArrayList<ACESentence>();
 		List<ACESentence> testSentences = new ArrayList<ACESentence>();
@@ -409,7 +427,7 @@ public class ACEReader {
 			List<ACEDocument> trainDocs = new ArrayList<ACEDocument>();
 			List<ACEDocument> devDocs = new ArrayList<ACEDocument>();
 			List<ACEDocument> testDocs = new ArrayList<ACEDocument>();
-			splitData(docs, trainDocs, devDocs, testDocs, datasplit);
+			splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
 			trainSentences = getSentences(trainDocs, splitter, ignoreOverlaps);
 			devSentences = getSentences(devDocs, splitter, ignoreOverlaps);
 			testSentences = getSentences(testDocs, splitter, ignoreOverlaps);
@@ -418,7 +436,7 @@ public class ACEReader {
 			trainSentences = new ArrayList<ACESentence>();
 			devSentences = new ArrayList<ACESentence>();
 			testSentences = new ArrayList<ACESentence>();
-			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit);
+			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit, shuffle, shuffleSeed);
 		}
 		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, toCoNLL, useBILOU);
 		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, toCoNLL, useBILOU);
@@ -611,7 +629,8 @@ public class ACEReader {
 		return result;
 	}
 	
-	private static <T> void splitData(List<T> aceObjects, List<T> trainObjects, List<T> devObjects, List<T> testObjects, double[] datasplit){
+	private static <T> void splitData(List<T> aceObjects, List<T> trainObjects, List<T> devObjects,
+			List<T> testObjects, double[] datasplit, boolean shuffle, int shuffleSeed){
 		int total = aceObjects.size();
 		int trainSize = (int)(datasplit[0]*total);
 		int devSize = (int)(datasplit[1]*total);
@@ -619,15 +638,43 @@ public class ACEReader {
 		if(trainSize + devSize + testSize != total){
 			trainSize -= trainSize + devSize + testSize - total;
 		}
-		trainObjects.addAll(aceObjects.subList(0, trainSize));
-		devObjects.addAll(aceObjects.subList(trainSize, trainSize + devSize));
-		testObjects.addAll(aceObjects.subList(trainSize + devSize, total));
-		String typeName = aceObjects.get(0).getClass().getName();
+		List<T> tmpObjects = new ArrayList<T>();
+		tmpObjects.addAll(aceObjects);
+		if(shuffle){
+			Collections.shuffle(tmpObjects, new Random(shuffleSeed));
+		}
+		trainObjects.addAll(tmpObjects.subList(0, trainSize));
+		devObjects.addAll(tmpObjects.subList(trainSize, trainSize + devSize));
+		testObjects.addAll(tmpObjects.subList(trainSize + devSize, total));
+		String typeName = tmpObjects.get(0).getClass().getName();
 		typeName = typeName.substring(typeName.lastIndexOf(".")+1);
 		System.out.println("Number of objects ("+typeName+"):");
 		System.out.println("Training: "+trainObjects.size());
 		System.out.println("Dev: "+devObjects.size());
 		System.out.println("Test: "+testObjects.size());
+	}
+	
+	private static void printStatistics(List<ACESentence> sentences){
+		Map<String, Integer> counts = new HashMap<String, Integer>();
+		for(ACESentence sentence: sentences){
+			for(ACEEntityMention entity: sentence.entities){
+				if(!counts.containsKey(entity.entity.type.name())){
+					counts.put(entity.entity.type.name(), 0);
+				}
+				counts.put(entity.entity.type.name(), counts.get(entity.entity.type.name())+1);
+			}
+		}
+		System.out.println("Statistics:");
+		for(String type: sorted(counts.keySet())){
+			System.out.println(type.toString()+": "+counts.get(type));
+		}
+	}
+	
+	private static <T extends Comparable<T>> List<T> sorted(Collection<T> coll){
+		List<T> result = new ArrayList<T>();
+		result.addAll(coll);
+		Collections.sort(result);
+		return result;
 	}
 	
 	private static void writeData(List<ACESentence> sentences, String outputDir, String name,
@@ -700,6 +747,7 @@ public class ACEReader {
 			}
 		}
 		printer.close();
+		printStatistics(sentences);
 	}
 	
 	private static List<WordLabel> spansToLabels(List<ACEEntityMention> mentions, List<CoreLabel> tokens, boolean useBILOU){
@@ -957,6 +1005,11 @@ public class ACEReader {
 				
 				+ "\n"
 				
+				+ "-excludeMetadata\n"
+				+ "\tExclude the text that comes before the <body> tag, which includes date and article ID.\n"
+				
+				+ "\n"
+				
 				+ "-convertEntitiesToInline\n"
 				+ "\tPrint the entities into files.\n"
 				+ "\tNeed -ace2004OutputBasePath, -ace2005OutputBasePath, and -dataSplit options.\n"
@@ -1013,6 +1066,16 @@ public class ACEReader {
 				
 				+ "-splitBySentences\n"
 				+ "\tSplit into training, development, and test based on sentences instead of documents.\n"
+				
+				+ "\n"
+				
+				+ "-shuffle\n"
+				+ "\tWhen splitting dataset, shuffle the order.\n"
+				
+				+ "\n"
+				
+				+ "-seed <seed>\n"
+				+ "\tThe seed used to initialize the Random object used to shuffle the dataset.\n"
 				
 				);
 		if(message != null){

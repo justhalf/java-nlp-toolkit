@@ -79,7 +79,7 @@ public class ACEDocument implements Serializable{
 	private static final boolean CHECK_ESCAPED_ENTITIES = false;
 	private static final boolean CHECK_OFFSET_TEXT = false;
 	private static final boolean CHECK_OOB_MENTIONS = false;
-	private static final boolean REMOVE_OOB_MENTIONS = false;
+	private static final boolean REMOVE_OOB_MENTIONS = true;
 	private static final boolean TEST_STRICT_PARSING = false;
 	private static final long serialVersionUID = -4698300709681532759L;
 
@@ -104,12 +104,17 @@ public class ACEDocument implements Serializable{
 	public Map<String, ACEObjectMention<? extends ACEObject>> objectMentionsById;
 	
 	public ACEDocument(String sgmFilename) throws IOException, SAXException {
-		this(sgmFilename, sgmFilename.replace(".sgm", ".apf.xml"));
+		this(sgmFilename, false);
 	}
 	
-	public ACEDocument(String sgmFilename, String apfFilename) throws IOException, SAXException {
+	public ACEDocument(String sgmFilename, boolean excludeMetadata) throws IOException, SAXException {
+		this(sgmFilename, sgmFilename.replace(".sgm", ".apf.xml"), excludeMetadata);
+	}
+	
+	public ACEDocument(String sgmFilename, String apfFilename, boolean excludeMetadata) throws IOException, SAXException {
 		this(IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(sgmFilename),
-			 IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(apfFilename));
+			 IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(apfFilename),
+			 excludeMetadata);
 	}
 	
 	/**
@@ -117,10 +122,11 @@ public class ACEDocument implements Serializable{
 	 * 
 	 * @param sgmStream
 	 * @param apfStream
+	 * @param excludeMetadata
 	 * @throws IOException
 	 * @throws SAXException
 	 */
-	public ACEDocument(InputStream sgmStream, InputStream apfStream) throws IOException, SAXException{
+	public ACEDocument(InputStream sgmStream, InputStream apfStream, boolean excludeMetadata) throws IOException, SAXException{
 		DOMParser parser = new DOMParser();
 		String sgmText = IOUtils.slurpInputStream(sgmStream, "UTF-8");
 		sgmText = sgmText.replaceAll("<(/)?BODY>", "<$1BODY_TEXT>");
@@ -131,10 +137,13 @@ public class ACEDocument implements Serializable{
 			docBuilder.parse(new InputSource(new StringReader(sgmText)));
 		}
 		this.fullText = unescape(sgm.getDocumentElement().getTextContent());
-		// This should supposedly be TEXT tag, but some annotations are present even outside the TEXT tag
-		this.text = unescape(sgm.getElementsByTagName("BODY_TEXT").item(0).getTextContent());
+		if(excludeMetadata){
+			// This should supposedly be TEXT tag, but some annotations are present even outside the TEXT tag
+			this.text = unescape(sgm.getElementsByTagName("BODY_TEXT").item(0).getTextContent());
+		} else {
+			this.text = this.fullText;
+		}
 		this.textInLowercase = this.text.equals(this.text.toLowerCase());
-		this.text = this.fullText;
 		this.offset = fullText.indexOf(text);
 		
 		this.entities = new ArrayList<ACEEntity>();

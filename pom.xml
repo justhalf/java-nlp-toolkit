@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.justhalf.nlp</groupId>
     <artifactId>java-nlp-toolkit</artifactId>
-    <version>0.1.2-SNAPSHOT</version>
+    <version>0.1.3-SNAPSHOT</version>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A collection of various Java NLP libraries</description>
     <url>https://github.com/justhalf/java-nlp-toolkit</url>

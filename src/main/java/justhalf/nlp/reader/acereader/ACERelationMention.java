@@ -54,6 +54,18 @@ public class ACERelationMention extends ACEObjectMention<ACERelation> implements
 			this.timestampType = ACETimestampType.valueOf(timestampType.toUpperCase().replace("-", "_"));
 		}
 	}
+
+	public ACERelationMention(ACERelationMention mention) {
+		super(mention.id, new Span(mention.span.start, mention.span.end), mention.text, mention.relation);
+		this.args = new ACEEntityMention[mention.args.length];
+		for(int i=0; i<this.args.length; i++){
+			this.args[i] = new ACEEntityMention(mention.args[i]);
+		}
+		this.syntacticClass = mention.syntacticClass;
+		this.relation = mention.relation;
+		this.timestamp = mention.timestamp;
+		this.timestampType = mention.timestampType;
+	}
 	
 	public String getParentID(){
 		return relation.id;

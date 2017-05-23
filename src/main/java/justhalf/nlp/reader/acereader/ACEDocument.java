@@ -257,7 +257,8 @@ public class ACEDocument implements Serializable{
 				System.out.println(unescapedOriginalText.contains(";")+" "+unescapedOriginalText.replace("\n", " "));
 			}
 		}
-		if(!actualText.equals(unescapedOriginalText)){
+		// The second disjunction to handle the case at APW_ENG_20030325.0786.sgm offset 905, which happens to map to the exact same word at 913
+		if(!actualText.equals(unescapedOriginalText) || actualText.equals("Welch")){
 			int index = this.text.lastIndexOf(unescapedOriginalText, Math.min(this.text.length(), span.start-lastDiff));
 			if(index == -1){
 				if(REMOVE_OOB_MENTIONS){

@@ -14,6 +14,8 @@ public abstract class ACEObjectMention<T extends ACEObject> {
 	public Span span;
 	public String text;
 	public T parent;
+	/** The sentence containing this mention */
+	public ACESentence containingSentence;
 	
 	public ACEObjectMention(String id, Span span, String text, T parent) {
 		this.id = id;

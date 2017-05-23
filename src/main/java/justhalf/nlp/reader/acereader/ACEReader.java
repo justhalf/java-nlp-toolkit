@@ -64,8 +64,9 @@ public class ACEReader {
 		HashSet<String> ace2005Domains = new LinkedHashSet<String>(ACE2005_DOMAINS);
 		
 		double[] datasplit = null;
-		boolean convert = false;
-		boolean convertEntities = false;
+		boolean print = false;
+		boolean printEntities = false;
+		boolean printRelations = false;
 		String ace2004OutputDir = null;
 		String ace2005OutputDir = null;
 		
@@ -116,9 +117,14 @@ public class ACEReader {
 				excludeMetadata = true;
 				argIndex += 1;
 				break;
-			case "-convertEntitiesToInline":
-				convertEntities = true;
-				convert = true;
+			case "-printEntities":
+				printEntities = true;
+				print = true;
+				argIndex += 1;
+				break;
+			case "-printRelations":
+				printRelations = true;
+				print = true;
 				argIndex += 1;
 				break;
 			case "-dataSplit":
@@ -227,7 +233,7 @@ public class ACEReader {
 					+ " or ACE2005 (-ace2005Dir)");
 			System.exit(0);
 		}
-		if(convert){
+		if(print){
 			if(ace2004DirName != null && ace2004OutputDir == null){
 				printHelp("Please specify the output directory for ACE2004.");
 				System.exit(0);
@@ -246,6 +252,9 @@ public class ACEReader {
 		}
 		if(tokenizer == null){
 			tokenizer = new StanfordTokenizer();
+		}
+		if(print && toCoNLL && printRelations){
+			System.err.println("Currently relations are ignored when printing in CoNLL format.");
 		}
 		
 		// Get documents list
@@ -400,16 +409,16 @@ public class ACEReader {
 			}
 		}
 		
-		if(convert){
+		if(print){
 			if(ace2004Docs.size() > 0){
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
-				printDataset(ace2004OutputDir, ace2004Docs, datasplit, convertEntities,
+				printDataset(ace2004OutputDir, ace2004Docs, datasplit, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, splitter,
 								toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
-				printDataset(ace2005OutputDir, ace2005Docs, datasplit, convertEntities,
+				printDataset(ace2005OutputDir, ace2005Docs, datasplit, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null,
 								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
@@ -417,9 +426,9 @@ public class ACEReader {
 	}
 
 	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit,
-			boolean convertEntities, Tokenizer tokenizer, POSTagger posTagger, SentenceSplitter splitter,
-			boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU, boolean splitByDocument,
-			boolean shuffle, int shuffleSeed) throws FileNotFoundException {
+			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger,
+			SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
+			boolean splitByDocument, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
 		List<ACESentence> devSentences = new ArrayList<ACESentence>();
 		List<ACESentence> testSentences = new ArrayList<ACESentence>();
@@ -438,9 +447,9 @@ public class ACEReader {
 			testSentences = new ArrayList<ACESentence>();
 			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit, shuffle, shuffleSeed);
 		}
-		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, toCoNLL, useBILOU);
-		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, toCoNLL, useBILOU);
-		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, toCoNLL, useBILOU);
+		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
 	}
 
 	/**
@@ -454,6 +463,11 @@ public class ACEReader {
 	 */
 	public static List<ACESentence> getSentences(List<ACEDocument> docs, SentenceSplitter splitter,
 			boolean ignoreOverlappingEntities) {
+		List<ACEEntityMention> orphanEntities = new ArrayList<ACEEntityMention>();
+		List<ACERelationMention> orphanRelations = new ArrayList<ACERelationMention>();
+		List<ACEEventMention> orphanEvents = new ArrayList<ACEEventMention>();
+		List<ACETimexMention> orphanTimexes = new ArrayList<ACETimexMention>();
+		List<ACEValueMention> orphanValues = new ArrayList<ACEValueMention>();
 		List<ACESentence> aceSentences = new ArrayList<ACESentence>();
 		for(ACEDocument doc: docs){
 			for(CoreLabel sentence: fixSplit(splitter.split(doc.text))){
@@ -461,6 +475,7 @@ public class ACEReader {
 				ACESentence aceSentence = new ACESentence(doc, sentenceSpan, sentence.value());
 				for(ACEEntityMention mention: doc.entityMentions){
 					if(sentenceSpan.contains(mention.span)){
+						mention.containingSentence = aceSentence;
 						ACEEntityMention newMention = new ACEEntityMention(mention);
 						newMention.span.start -= sentenceSpan.start;
 						newMention.span.end -= sentenceSpan.start;
@@ -488,28 +503,81 @@ public class ACEReader {
 				}
 				for(ACERelationMention relation: doc.relationMentions){
 					if(sentenceSpan.contains(relation.span)){
-						aceSentence.addRelationMention(relation);
+						boolean add = true;
+						ACERelationMention newRelation = new ACERelationMention(relation);
+						newRelation.span.start -= sentenceSpan.start;
+						newRelation.span.end -= sentenceSpan.start;
+						for(ACEEntityMention argMention: newRelation.args){
+							if(!sentenceSpan.contains(argMention.span)){
+								add = false;
+								break;
+							}
+							argMention.span.start -= sentenceSpan.start;
+							argMention.span.end -= sentenceSpan.start;
+							argMention.headSpan.start -= sentenceSpan.start;
+							argMention.headSpan.end -= sentenceSpan.start;
+						}
+						if(add){
+							relation.containingSentence = aceSentence;
+							aceSentence.addRelationMention(newRelation);
+						}
 					}
 				}
 				for(ACEEventMention event: doc.eventMentions){
 					if(sentenceSpan.contains(event.span)){
+						event.containingSentence = aceSentence;
 						aceSentence.addEventMention(event);
 					}
 				}
 				for(ACETimexMention timex: doc.timexMentions){
 					if(sentenceSpan.contains(timex.span)){
+						timex.containingSentence = aceSentence;
 						aceSentence.addTimexMention(timex);
 					}
 				}
 				for(ACEValueMention value: doc.valueMentions){
 					if(sentenceSpan.contains(value.span)){
+						value.containingSentence = aceSentence;
 						aceSentence.addValueMention(value);
 					}
 				}
 				aceSentences.add(aceSentence);
 			}
+			orphanEntities.addAll(returnOrphanMentions(doc.entityMentions));
+			orphanRelations.addAll(returnOrphanMentions(doc.relationMentions));
+			orphanEvents.addAll(returnOrphanMentions(doc.eventMentions));
+			orphanTimexes.addAll(returnOrphanMentions(doc.timexMentions));
+			orphanValues.addAll(returnOrphanMentions(doc.valueMentions));
 		}
+		System.out.println("The number of entity mentions not inside a sentence: "+orphanEntities.size()+" "+toIDString(orphanEntities));
+		System.out.println("The number of relation mentions not inside a sentence: "+orphanRelations.size()+" "+toIDString(orphanRelations));
+		System.out.println("The number of event mentions not inside a sentence: "+orphanEvents.size()+" "+toIDString(orphanEvents));
+		System.out.println("The number of timex mentions not inside a sentence: "+orphanTimexes.size()+" "+toIDString(orphanTimexes));
+		System.out.println("The number of value mentions not inside a sentence: "+orphanValues.size()+" "+toIDString(orphanValues));
 		return aceSentences;
+	}
+	
+	private static String toIDString(List<? extends ACEObjectMention<?>> mentions){
+		StringBuilder builder = new StringBuilder();
+		builder.append("[");
+		for(ACEObjectMention<?> mention: mentions){
+			if(builder.length() > 1){
+				builder.append(",");
+			}
+			builder.append(mention.getFullID());
+		}
+		builder.append("]");
+		return builder.toString();
+	}
+	
+	private static <T extends ACEObjectMention<?>> List<T> returnOrphanMentions(List<T> mentions){
+		List<T> orphanMentions = new ArrayList<T>();
+		for(T mention: mentions){
+			if(mention.containingSentence == null){
+				orphanMentions.add(mention);
+			}
+		}
+		return orphanMentions;
 	}
 	
 	private static List<CoreLabel> fixSplit(List<CoreLabel> sentences){
@@ -655,18 +723,31 @@ public class ACEReader {
 	}
 	
 	private static void printStatistics(List<ACESentence> sentences){
-		Map<String, Integer> counts = new HashMap<String, Integer>();
+		Map<String, Integer> entityCounts = new HashMap<String, Integer>();
 		for(ACESentence sentence: sentences){
 			for(ACEEntityMention entity: sentence.entities){
-				if(!counts.containsKey(entity.entity.type.name())){
-					counts.put(entity.entity.type.name(), 0);
+				if(!entityCounts.containsKey(entity.entity.type.name())){
+					entityCounts.put(entity.entity.type.name(), 0);
 				}
-				counts.put(entity.entity.type.name(), counts.get(entity.entity.type.name())+1);
+				entityCounts.put(entity.entity.type.name(), entityCounts.get(entity.entity.type.name())+1);
 			}
 		}
-		System.out.println("Statistics:");
-		for(String type: sorted(counts.keySet())){
-			System.out.println(type.toString()+": "+counts.get(type));
+		Map<String, Integer> relationCounts = new HashMap<String, Integer>();
+		for(ACESentence sentence: sentences){
+			for(ACERelationMention relation: sentence.relations){
+				if(!relationCounts.containsKey(relation.relation.type.name())){
+					relationCounts.put(relation.relation.type.name(), 0);
+				}
+				relationCounts.put(relation.relation.type.name(), relationCounts.get(relation.relation.type.name())+1);
+			}
+		}
+		System.out.println("Statistics of Entities:");
+		for(String type: sorted(entityCounts.keySet())){
+			System.out.println(type.toString()+": "+entityCounts.get(type));
+		}
+		System.out.println("Statistics of Relations:");
+		for(String type: sorted(relationCounts.keySet())){
+			System.out.println(type.toString()+": "+relationCounts.get(type));
 		}
 	}
 	
@@ -678,7 +759,7 @@ public class ACEReader {
 	}
 	
 	private static void writeData(List<ACESentence> sentences, String outputDir, String name,
-			Tokenizer tokenizer, POSTagger posTagger,
+			Tokenizer tokenizer, POSTagger posTagger, boolean printEntities, boolean printRelations,
 			boolean toCoNLL, boolean useBILOU) throws FileNotFoundException{
 		PrintWriter printer = new PrintWriter(new File(outputDir+name));
 		for(ACESentence sentence: sentences){
@@ -691,11 +772,19 @@ public class ACEReader {
 					List<WordLabel> outputTokens = spansToLabels(sentence.entities, tokens, useBILOU);
 					if(posTagger != null){
 						for(int i=0; i<tokens.size(); i++){
-							printer.println(String.format("%s\t%s\t%s",tokens.get(i).value(), tokens.get(i).tag(), outputTokens.get(i).form));
+							String annotations = "";
+							if(printEntities){
+								annotations += outputTokens.get(i).form;
+							}
+							printer.println(String.format("%s\t%s\t%s",tokens.get(i).value(), tokens.get(i).tag(), annotations));
 						}
 					} else {
 						for(int i=0; i<tokens.size(); i++){
-							printer.println(String.format("%s\t%s",tokens.get(i).value(), outputTokens.get(i).form));
+							String annotations = "";
+							if(printEntities){
+								annotations += outputTokens.get(i).form;
+							}
+							printer.println(String.format("%s\t%s",tokens.get(i).value(), annotations));
 						}
 					}
 					printer.println();
@@ -719,30 +808,71 @@ public class ACEReader {
 						}
 						printer.println(stringBuilder.toString());
 					}
-					stringBuilder = new StringBuilder();
-					for(ACEEntityMention mention: sentence.entities){
-						Span wordSpan = findWordSpan(mention.span, tokens);
-						Span headWordSpan = findWordSpan(mention.headSpan, tokens);
-						if(stringBuilder.length() > 0){
-							stringBuilder.append("|");
+					if(printEntities){
+						stringBuilder = new StringBuilder();
+						for(ACEEntityMention mention: sentence.entities){
+							Span span = findWordSpan(mention.span, tokens);
+							Span headSpan = findWordSpan(mention.headSpan, tokens);
+							if(stringBuilder.length() > 0){
+								stringBuilder.append("|");
+							}
+							stringBuilder.append(String.format("%s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
 						}
-						stringBuilder.append(String.format("%s,%s,%s,%s %s", wordSpan.start, wordSpan.end, headWordSpan.start, headWordSpan.end, mention.label.form));
+						printer.println(stringBuilder.toString());
 					}
-					printer.println(stringBuilder.toString());
+
+					if(printRelations){
+						stringBuilder = new StringBuilder();
+						for(ACERelationMention relation: sentence.relations){
+							if(stringBuilder.length() > 0){
+								stringBuilder.append("|");
+							}
+							stringBuilder.append(relation.relation.type() + "::" + relation.relation.subtype());
+							for(ACEEntityMention mention: relation.args){
+								Span span = findWordSpan(mention.span, tokens);
+								Span headSpan = findWordSpan(mention.headSpan, tokens);
+								stringBuilder.append(String.format(" %s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
+							}
+						}
+						printer.println(stringBuilder.toString());
+					}
+					
 					printer.println();
 				}
 			} else {
 				printer.println(sentence.text.replaceAll("[\n\t]", " "));
-				StringBuilder stringBuilder = new StringBuilder();
-				for(ACEEntityMention mention: sentence.entities){
-					Span span = mention.span;
-					Span headSpan = mention.headSpan;
-					if(stringBuilder.length() > 0){
-						stringBuilder.append("|");
+				StringBuilder stringBuilder;
+				
+				if(printEntities){
+					stringBuilder = new StringBuilder();
+					for(ACEEntityMention mention: sentence.entities){
+						Span span = mention.span;
+						Span headSpan = mention.headSpan;
+						if(stringBuilder.length() > 0){
+							stringBuilder.append("|");
+						}
+						stringBuilder.append(String.format("%s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
 					}
-					stringBuilder.append(String.format("%s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
+					printer.println(stringBuilder.toString());
 				}
-				printer.println(stringBuilder.toString());
+				
+				if(printRelations){
+					stringBuilder = new StringBuilder();
+					for(ACERelationMention relation: sentence.relations){
+						if(stringBuilder.length() > 0){
+							stringBuilder.append("|");
+						}
+						stringBuilder.append(relation.relation.type() + "::" + relation.relation.subtype());
+						for(ACEEntityMention mention: relation.args){
+							Span span = mention.span;
+							Span headSpan = mention.headSpan;
+							stringBuilder.append(String.format(" %s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
+						}
+					}
+					
+					printer.println(stringBuilder.toString());
+				}
+				
 				printer.println();
 			}
 		}

@@ -296,13 +296,41 @@
                                 <goals>
                                     <goal>shade</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>shade-reduced</id>
+            <build>
+                <plugins>
+                    <!-- To create package which includes all dependencies -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>2.4.2</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
                                 <configuration>
                                     <filters>
                                         <filter>
-                                            <artifact>*:*</artifact>
+                                            <artifact>edu.emory*</artifact>
                                             <excludes>
-                                                <exclude>**/models/*</exclude>
+                                                <exclude>**/models/**/*</exclude>
+                                                <exclude>**/lexica/**/*</exclude>
                                             </excludes>
+                                        </filter>
+                                        <filter>
+                                            <artifact>edu.stanford.nlp:stanford-corenlp:jar:models:*</artifact>
+                                            <includes>
+                                                <include>**/pos-tagger/**/*</include>
+                                            </includes>
                                         </filter>
                                     </filters>
                                 </configuration>

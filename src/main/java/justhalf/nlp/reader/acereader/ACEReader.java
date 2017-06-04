@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import org.xml.sax.SAXException;
 
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.StringUtils;
 import justhalf.nlp.depparser.DepParser;
 import justhalf.nlp.depparser.StanfordDepParser;
@@ -449,20 +450,20 @@ public class ACEReader {
 			if(ace2004Docs.size() > 0){
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2004OutputDir, ace2004Docs, datasplit, printEntities, printRelations,
-						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, splitter,
+						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, splitter,
 								toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2005OutputDir, ace2005Docs, datasplit, printEntities, printRelations,
-						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null,
+						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null,
 								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 		}
 	}
 
 	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit,
-			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger,
+			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger, DepParser depParser,
 			SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
 			boolean splitByDocument, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
@@ -483,9 +484,9 @@ public class ACEReader {
 			testSentences = new ArrayList<ACESentence>();
 			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit, shuffle, shuffleSeed);
 		}
-		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
 	}
 
 	/**
@@ -795,7 +796,7 @@ public class ACEReader {
 	}
 	
 	private static void writeData(List<ACESentence> sentences, String outputDir, String name,
-			Tokenizer tokenizer, POSTagger posTagger, boolean printEntities, boolean printRelations,
+			Tokenizer tokenizer, POSTagger posTagger, DepParser depParser, boolean printEntities, boolean printRelations,
 			boolean toCoNLL, boolean useBILOU) throws FileNotFoundException{
 		PrintWriter printer = new PrintWriter(new File(outputDir+name));
 		for(ACESentence sentence: sentences){
@@ -803,6 +804,18 @@ public class ACEReader {
 				List<CoreLabel> tokens = fixTokens(tokenizer.tokenize(sentence.text));
 				if(posTagger != null){
 					posTagger.tagCoreLabels(tokens);
+				}
+				int[] heads = null;
+				String[] depLabels = null;
+				if (depParser != null && depParser instanceof StanfordDepParser) {
+					heads = new int[tokens.size()];
+					depLabels = new String[tokens.size()];
+					List<TypedDependency> deps =  depParser.parse(tokens);
+					for (int i = 0; i < deps.size(); i++) {
+						TypedDependency typedDep = deps.get(i);
+						heads[typedDep.dep().index() - 1] = typedDep.gov().index() - 1;
+						depLabels[typedDep.dep().index() - 1] = typedDep.reln().getShortName();
+					}
 				}
 				if(toCoNLL){
 					List<WordLabel> outputTokens = spansToLabels(sentence.entities, tokens, useBILOU);
@@ -841,6 +854,24 @@ public class ACEReader {
 								stringBuilder.append(" ");
 							}
 							stringBuilder.append(token.tag());
+						}
+						printer.println(stringBuilder.toString());
+					}
+					if (heads != null && depLabels !=null) {
+						stringBuilder = new StringBuilder();
+						for (int i = 0; i < heads.length; i++) {
+							if(stringBuilder.length() > 0){
+								stringBuilder.append(" ");
+							}
+							stringBuilder.append(heads[i]+"");
+						}
+						printer.println(stringBuilder.toString());
+						stringBuilder = new StringBuilder();
+						for (int i = 0; i < depLabels.length; i++) {
+							if(stringBuilder.length() > 0){
+								stringBuilder.append(" ");
+							}
+							stringBuilder.append(depLabels[i]);
 						}
 						printer.println(stringBuilder.toString());
 					}

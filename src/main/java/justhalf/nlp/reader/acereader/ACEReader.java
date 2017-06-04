@@ -26,6 +26,8 @@ import org.xml.sax.SAXException;
 
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.util.StringUtils;
+import justhalf.nlp.depparser.DepParser;
+import justhalf.nlp.depparser.StanfordDepParser;
 import justhalf.nlp.postagger.POSTagger;
 import justhalf.nlp.postagger.StanfordPOSTagger;
 import justhalf.nlp.reader.acereader.ACEEntity.ACEEntitySubType;
@@ -36,6 +38,8 @@ import justhalf.nlp.reader.acereader.ACERelation.ACERelationSubType;
 import justhalf.nlp.reader.acereader.ACERelation.ACERelationType;
 import justhalf.nlp.reader.acereader.ACEValue.ACEValueSubType;
 import justhalf.nlp.reader.acereader.ACEValue.ACEValueType;
+import justhalf.nlp.sentenceparser.SentenceParser;
+import justhalf.nlp.sentenceparser.StanfordSentenceParser;
 import justhalf.nlp.sentencesplitter.SentenceSplitter;
 import justhalf.nlp.sentencesplitter.StanfordSentenceSplitter;
 import justhalf.nlp.tokenizer.RegexTokenizer;
@@ -72,9 +76,14 @@ public class ACEReader {
 		
 		boolean tokenize = false;
 		boolean posTag = false;
+		boolean parse = false;
+		boolean dep = false;
 		Tokenizer tokenizer = null;
 		POSTagger posTagger = null;
 		SentenceSplitter splitter = null;
+		SentenceParser parser = null;
+		DepParser depParser = null;
+		
 		
 		boolean toCoNLL = false;
 		boolean ignoreOverlaps = false;
@@ -177,6 +186,33 @@ public class ACEReader {
 				default:
 					System.out.println("Unrecognized POS tagger \""+args[argIndex+1]+"\", using stanford.");
 					posTagger = new StanfordPOSTagger();
+					break;
+				}
+				argIndex += 2;
+				break;
+			case "-parser":
+				parse = true;
+				switch(args[argIndex+1]){
+				case "stanford":
+					parser = new StanfordSentenceParser();
+					break;
+				default:
+					System.out.println("Unrecognized sentence parser \""+args[argIndex+1]+"\", using stanford.");
+					parser = new StanfordSentenceParser();
+					break;
+				}
+				argIndex += 2;
+				break;
+			case "-depparser":
+				dep = true;
+				switch(args[argIndex+1]){
+				case "stanford":
+					//by default it's UD parser
+					depParser = new StanfordDepParser();
+					break;
+				default:
+					System.out.println("Unrecognized dependency parser \""+args[argIndex+1]+"\", using stanford.");
+					depParser = new StanfordDepParser();
 					break;
 				}
 				argIndex += 2;

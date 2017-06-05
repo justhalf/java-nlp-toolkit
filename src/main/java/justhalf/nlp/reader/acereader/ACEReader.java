@@ -505,7 +505,7 @@ public class ACEReader {
 		if (splitFolds) {
 			for (int i = 0; i < foldSentences.size(); i++) {
 				int fold = i + 1;
-				writeData(foldSentences.get(i), outputDir, "/fold"+fold+".data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+				writeData(foldSentences.get(i), outputDir, "/fold."+fold+".data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
 			}
 		} else {
 			writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
@@ -850,6 +850,9 @@ public class ACEReader {
 		for(ACESentence sentence: sentences){
 			if(tokenizer != null){
 				List<CoreLabel> tokens = fixTokens(tokenizer.tokenize(sentence.text));
+				for (CoreLabel token : tokens) {
+					token.setValue(escapeBracket(token.value()));
+				}
 				if(posTagger != null){
 					posTagger.tagCoreLabels(tokens);
 				}
@@ -895,8 +898,7 @@ public class ACEReader {
 						if(stringBuilder.length() > 0){
 							stringBuilder.append(" ");
 						}
-						stringBuilder.append(token.value());
-						token.setWord(escapeBracket(token.word()));
+						stringBuilder.append(token.word());
 					}
 					printer.println(stringBuilder.toString());
 					if(posTagger != null){

@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import org.xml.sax.SAXException;
 
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.util.StringUtils;
 import justhalf.nlp.depparser.DepParser;
@@ -450,13 +451,13 @@ public class ACEReader {
 			if(ace2004Docs.size() > 0){
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2004OutputDir, ace2004Docs, datasplit, printEntities, printRelations,
-						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, splitter,
-								toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
+						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
+								splitter,toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2005OutputDir, ace2005Docs, datasplit, printEntities, printRelations,
-						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null,
+						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
 								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
 			}
 		}
@@ -464,7 +465,7 @@ public class ACEReader {
 
 	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit,
 			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger, DepParser depParser,
-			SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
+			SentenceParser parser, SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
 			boolean splitByDocument, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
 		List<ACESentence> devSentences = new ArrayList<ACESentence>();
@@ -484,9 +485,9 @@ public class ACEReader {
 			testSentences = new ArrayList<ACESentence>();
 			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit, shuffle, shuffleSeed);
 		}
-		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, depParser, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
 	}
 
 	/**
@@ -796,7 +797,7 @@ public class ACEReader {
 	}
 	
 	private static void writeData(List<ACESentence> sentences, String outputDir, String name,
-			Tokenizer tokenizer, POSTagger posTagger, DepParser depParser, boolean printEntities, boolean printRelations,
+			Tokenizer tokenizer, POSTagger posTagger, DepParser depParser, SentenceParser parser, boolean printEntities, boolean printRelations,
 			boolean toCoNLL, boolean useBILOU) throws FileNotFoundException{
 		PrintWriter printer = new PrintWriter(new File(outputDir+name));
 		for(ACESentence sentence: sentences){
@@ -816,6 +817,10 @@ public class ACEReader {
 						heads[typedDep.dep().index() - 1] = typedDep.gov().index() - 1;
 						depLabels[typedDep.dep().index() - 1] = typedDep.reln().getShortName();
 					}
+				}
+				Tree parseTree = null;
+				if (parser != null) {
+					parseTree = parser.parseCoreLabel(tokens);
 				}
 				if(toCoNLL){
 					List<WordLabel> outputTokens = spansToLabels(sentence.entities, tokens, useBILOU);
@@ -857,6 +862,12 @@ public class ACEReader {
 						}
 						printer.println(stringBuilder.toString());
 					}
+					if (posTagger != null && parser != null) {
+						//Note: the line above parser string must contain something. otherwise the penn reader later have error.
+						stringBuilder = new StringBuilder();
+						stringBuilder = parseTree.toStringBuilder(stringBuilder);
+						printer.println(stringBuilder.toString());
+					}
 					if (heads != null && depLabels !=null) {
 						stringBuilder = new StringBuilder();
 						for (int i = 0; i < heads.length; i++) {
@@ -883,7 +894,7 @@ public class ACEReader {
 							if(stringBuilder.length() > 0){
 								stringBuilder.append("|");
 							}
-							stringBuilder.append(String.format("%s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
+							stringBuilder.append(String.format("%s,%s,%s,%s %s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name()));
 						}
 						printer.println(stringBuilder.toString());
 					}
@@ -898,12 +909,11 @@ public class ACEReader {
 							for(ACEEntityMention mention: relation.args){
 								Span span = findWordSpan(mention.span, tokens);
 								Span headSpan = findWordSpan(mention.headSpan, tokens);
-								stringBuilder.append(String.format(" %s,%s,%s,%s %s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form));
+								stringBuilder.append(String.format(" %s,%s,%s,%s %s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name()));
 							}
 						}
 						printer.println(stringBuilder.toString());
 					}
-					
 					printer.println();
 				}
 			} else {
@@ -1079,6 +1089,7 @@ public class ACEReader {
 
 	private static void extractDocList(List<File> fileList, String aceDirName, Collection<String> aceDomains, String... additionalPath) {
 		File aceDir = new File(aceDirName);
+		System.err.println(aceDirName);
 		for(File subdir: aceDir.listFiles()){
 			if(!subdir.isDirectory()){
 				continue;

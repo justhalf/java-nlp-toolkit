@@ -2,6 +2,7 @@ package justhalf.nlp.sentenceparser;
 
 import java.util.List;
 
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.trees.Tree;
 import justhalf.nlp.NLPInterface;
 
@@ -27,4 +28,13 @@ public interface SentenceParser extends NLPInterface{
 	 * 		The parsed sentence
 	 */
 	public Tree parse(List<String> sentence);
+	
+	/**
+	 * Parse pretagged sentence, returning a Tree.
+	 * @param sentence
+	 * 		The sentence to be parsed as a list of tokens and also labels
+	 * @return the parsed tree
+	 */
+	public Tree parseCoreLabel(List<CoreLabel> sentence);
+	
 }

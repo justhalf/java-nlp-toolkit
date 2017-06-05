@@ -1089,7 +1089,6 @@ public class ACEReader {
 
 	private static void extractDocList(List<File> fileList, String aceDirName, Collection<String> aceDomains, String... additionalPath) {
 		File aceDir = new File(aceDirName);
-		System.err.println(aceDirName);
 		for(File subdir: aceDir.listFiles()){
 			if(!subdir.isDirectory()){
 				continue;

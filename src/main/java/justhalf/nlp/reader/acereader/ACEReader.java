@@ -70,6 +70,7 @@ public class ACEReader {
 		HashSet<String> ace2005Domains = new LinkedHashSet<String>(ACE2005_DOMAINS);
 		
 		double[] datasplit = null;
+		int foldNum = 0; //use when split fold
 		boolean print = false;
 		boolean printEntities = false;
 		boolean printRelations = false;
@@ -91,6 +92,7 @@ public class ACEReader {
 		boolean ignoreOverlaps = false;
 		boolean useBILOU = false;
 		boolean splitByDocument = true;
+		boolean splitFolds = false;
 		boolean shuffle = false;
 		boolean excludeMetadata = false;
 		int shuffleSeed = 31;
@@ -247,6 +249,11 @@ public class ACEReader {
 				splitByDocument = false;
 				argIndex += 1;
 				break;
+			case "-splitFolds":
+				splitFolds = true; //note: careful about the split.
+				foldNum = Integer.valueOf(args[argIndex + 1]);
+				argIndex += 2;
+				break;
 			case "-shuffle":
 				shuffle = true;
 				argIndex += 1;
@@ -280,7 +287,7 @@ public class ACEReader {
 				printHelp("Please specify the output directory for ACE2005.");
 				System.exit(0);
 			}
-			if(datasplit == null){
+			if(datasplit == null && foldNum == 0){
 				printHelp("Please specify the datasplit with -dataSplit option.");
 				System.exit(0);
 			}
@@ -450,34 +457,43 @@ public class ACEReader {
 		if(print){
 			if(ace2004Docs.size() > 0){
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
-				printDataset(ace2004OutputDir, ace2004Docs, datasplit, printEntities, printRelations,
+				printDataset(ace2004OutputDir, ace2004Docs, datasplit, foldNum, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
-								splitter,toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
+								splitter,toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, splitFolds, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
-				printDataset(ace2005OutputDir, ace2005Docs, datasplit, printEntities, printRelations,
+				printDataset(ace2005OutputDir, ace2005Docs, datasplit, foldNum, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
-								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, shuffle, shuffleSeed);
+								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, splitFolds, shuffle, shuffleSeed);
 			}
 		}
 	}
 
-	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit,
+	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit, int foldNum,
 			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger, DepParser depParser,
 			SentenceParser parser, SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
-			boolean splitByDocument, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
+			boolean splitByDocument, boolean splitFolds, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
 		List<ACESentence> devSentences = new ArrayList<ACESentence>();
 		List<ACESentence> testSentences = new ArrayList<ACESentence>();
+		List<List<ACESentence>> foldSentences = new ArrayList<>();
 		if(splitByDocument){
-			List<ACEDocument> trainDocs = new ArrayList<ACEDocument>();
-			List<ACEDocument> devDocs = new ArrayList<ACEDocument>();
-			List<ACEDocument> testDocs = new ArrayList<ACEDocument>();
-			splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
-			trainSentences = getSentences(trainDocs, splitter, ignoreOverlaps);
-			devSentences = getSentences(devDocs, splitter, ignoreOverlaps);
-			testSentences = getSentences(testDocs, splitter, ignoreOverlaps);
+			if (splitFolds) {
+				List<List<ACEDocument>> foldDocs = new ArrayList<>();
+				splitFolds(docs, foldDocs, foldNum, shuffle, shuffleSeed);
+				for (int i = 0; i < foldDocs.size(); i++) {
+					foldSentences.add(getSentences(foldDocs.get(i), splitter, ignoreOverlaps));
+				}
+			} else {
+				List<ACEDocument> trainDocs = new ArrayList<ACEDocument>();
+				List<ACEDocument> devDocs = new ArrayList<ACEDocument>();
+				List<ACEDocument> testDocs = new ArrayList<ACEDocument>();
+				splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
+				trainSentences = getSentences(trainDocs, splitter, ignoreOverlaps);
+				devSentences = getSentences(devDocs, splitter, ignoreOverlaps);
+				testSentences = getSentences(testDocs, splitter, ignoreOverlaps);
+			}
 		} else {
 			List<ACESentence> aceSentences = getSentences(docs, splitter, ignoreOverlaps);
 			trainSentences = new ArrayList<ACESentence>();
@@ -485,9 +501,17 @@ public class ACEReader {
 			testSentences = new ArrayList<ACESentence>();
 			splitData(aceSentences, trainSentences, devSentences, testSentences, datasplit, shuffle, shuffleSeed);
 		}
-		writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
-		writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+		
+		if (splitFolds) {
+			for (int i = 0; i < foldSentences.size(); i++) {
+				int fold = i + 1;
+				writeData(foldSentences.get(i), outputDir, "/fold"+fold+".data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+			}
+		} else {
+			writeData(trainSentences, outputDir, "/train.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+			writeData(devSentences, outputDir, "/dev.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+			writeData(testSentences, outputDir, "/test.data", tokenizer, posTagger, depParser, parser, printEntities, printRelations, toCoNLL, useBILOU);
+		}
 	}
 
 	/**
@@ -758,6 +782,29 @@ public class ACEReader {
 		System.out.println("Training: "+trainObjects.size());
 		System.out.println("Dev: "+devObjects.size());
 		System.out.println("Test: "+testObjects.size());
+	}
+	
+	private static <T> void splitFolds(List<T> aceObjects, List<List<T>> foldObjects, int foldNum, boolean shuffle, int shuffleSeed){
+		int total = aceObjects.size();
+		int foldSize = total / foldNum; //last fold may contain more
+		List<T> tmpObjects = new ArrayList<T>();
+		tmpObjects.addAll(aceObjects);
+		if(shuffle){
+			Collections.shuffle(tmpObjects, new Random(shuffleSeed));
+		}
+		for (int f = 0; f < foldNum; f++) {
+			List<T> foldList = new ArrayList<T>();
+			int end = foldSize * (f + 1);
+			if (f == foldNum - 1 && end < total) end = total;
+			foldList.addAll(tmpObjects.subList(foldSize * f, end));
+			foldObjects.add(foldList);
+		}
+		String typeName = tmpObjects.get(0).getClass().getName();
+		typeName = typeName.substring(typeName.lastIndexOf(".")+1);
+		System.out.println("Number of objects ("+typeName+"):");
+		System.out.println("Number of folds: "+foldNum);
+		System.out.println("Fold size: "+foldSize);
+		System.out.println("Last Fold Size: "+(total - foldSize * foldNum + foldSize));
 	}
 	
 	private static void printStatistics(List<ACESentence> sentences){

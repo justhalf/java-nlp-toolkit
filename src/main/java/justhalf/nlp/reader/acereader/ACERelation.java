@@ -20,8 +20,8 @@ public class ACERelation extends ACEObject {
 		
 		// Only in ACE2004
 		EMP_ORG("Employee/Membership/Subsidiary", true, false),
-		OTHER_AFF("PER/ORG Affiliation", true, false),
-		GPE_AFF("GPE Affiliation", true, false),
+		OTHER_AFF("PER/ORG-Affiliation", true, false),
+		GPE_AFF("GPE-Affiliation", true, false),
 		DISC("Discourse", true, false),
 		
 		// Only in ACE2005

@@ -943,7 +943,7 @@ public class ACEReader {
 							if(stringBuilder.length() > 0){
 								stringBuilder.append("|");
 							}
-							stringBuilder.append(String.format("%s,%s,%s,%s %s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name()));
+							stringBuilder.append(String.format("%s,%s,%s,%s %s,%s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name(), mention.entity.subtype()));
 						}
 						printer.println(stringBuilder.toString());
 					}
@@ -958,7 +958,7 @@ public class ACEReader {
 							for(ACEEntityMention mention: relation.args){
 								Span span = findWordSpan(mention.span, tokens);
 								Span headSpan = findWordSpan(mention.headSpan, tokens);
-								stringBuilder.append(String.format(" %s,%s,%s,%s %s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name()));
+								stringBuilder.append(String.format(" %s,%s,%s,%s %s,%s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name(), mention.entity.subtype()));
 							}
 						}
 						printer.println(stringBuilder.toString());

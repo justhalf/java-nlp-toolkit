@@ -1131,7 +1131,7 @@ public class ACEReader {
 			extractDocList(fileList, ace2005DirName, ace2005Domains, "/timex2norm");
 		}
 		for(File sgmFile: fileList){
-			result.add(new ACEDocument(sgmFile.getAbsolutePath()));
+			result.add(new ACEDocument(sgmFile.getName(), sgmFile.getAbsolutePath()));
 		}
 		return result;
 	}

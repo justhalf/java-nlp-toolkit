@@ -350,7 +350,7 @@ public class ACEReader {
 		Map<ACEEventType, Integer> eventTypeMentionCount = new HashMap<ACEEventType, Integer>();
 		for(File sgmFile: fileList){
 			try {
-				ACEDocument doc = new ACEDocument(sgmFile.getAbsolutePath(), excludeMetadata);
+				ACEDocument doc = new ACEDocument(sgmFile.getName(), sgmFile.getAbsolutePath(), excludeMetadata);
 				docCount++;
 //				printMentions(doc, doc.mentions);
 				

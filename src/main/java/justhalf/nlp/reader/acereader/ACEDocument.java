@@ -298,6 +298,7 @@ public class ACEDocument implements Serializable{
 		Span span = getSpan(extentCharseq);
 		String aceText = extentCharseq.getTextContent();
 		Node head = ((Element)entityMention).getElementsByTagName("HEAD_EXTENT").item(0);
+		if (head == null) throw new RuntimeException("No head span?");
 		Node headCharseq = head == null ? null : ((Element)head).getElementsByTagName("CHARSEQ").item(0);
 		Span headSpan = headCharseq == null ? null : getSpan(headCharseq);
 		String aceHeadText = headCharseq == null ? "" : headCharseq.getTextContent();

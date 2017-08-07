@@ -5,9 +5,12 @@ package justhalf.nlp.reader.acereader;
 
 import static justhalf.nlp.reader.acereader.ACEDocument.unescape;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,6 +69,8 @@ public class ACEReader {
 	public static void main(String[] args) throws FileNotFoundException{
 		String ace2004DirName = null;
 		String ace2005DirName = null;
+		String ace2004SplitFolder = null;
+		String ace2005SplitFolder = null;
 		HashSet<String> ace2004Domains = new LinkedHashSet<String>(ACE2004_DOMAINS);
 		HashSet<String> ace2005Domains = new LinkedHashSet<String>(ACE2005_DOMAINS);
 		
@@ -92,7 +97,8 @@ public class ACEReader {
 		boolean ignoreOverlaps = false;
 		boolean useBILOU = false;
 		boolean splitByDocument = true;
-		boolean splitFolds = false;
+		boolean ace2004SplitFolds = false;
+		boolean ace2005SplitFolds = false;
 		boolean shuffle = false;
 		boolean excludeMetadata = false;
 		int shuffleSeed = 31;
@@ -249,9 +255,22 @@ public class ACEReader {
 				splitByDocument = false;
 				argIndex += 1;
 				break;
-			case "-splitFolds":
-				splitFolds = true; //note: careful about the split.
+			case "-ace2004SplitFolds":
+				ace2004SplitFolds = true; //note: careful about the split.
 				foldNum = Integer.valueOf(args[argIndex + 1]);
+				argIndex += 2;
+				break;
+			case "-ace2005SplitFolds":
+				ace2004SplitFolds = true; //note: careful about the split.
+				foldNum = Integer.valueOf(args[argIndex + 1]);
+				argIndex += 2;
+				break;
+			case "-ace2004SplitFolder":
+				ace2004SplitFolder = args[argIndex + 1];
+				argIndex += 2;
+				break;
+			case "-ace2005SplitFolder":
+				ace2005SplitFolder = args[argIndex + 1];
 				argIndex += 2;
 				break;
 			case "-shuffle":
@@ -459,13 +478,13 @@ public class ACEReader {
 				System.out.println("Printing ACE2004 dataset to "+ace2004OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2004OutputDir, ace2004Docs, datasplit, foldNum, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
-								splitter,toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, splitFolds, shuffle, shuffleSeed);
+								splitter,toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, ace2004SplitFolds, ace2004SplitFolder, shuffle, shuffleSeed);
 			}
 			if(ace2005Docs.size() > 0){
 				System.out.println("Printing ACE2005 dataset to "+ace2005OutputDir+"/{train,dev,test}.data");
 				printDataset(ace2005OutputDir, ace2005Docs, datasplit, foldNum, printEntities, printRelations,
 						(tokenize || toCoNLL) ? tokenizer : null, posTag ? posTagger : null, dep? depParser : null, parse ? parser : null,
-								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, splitFolds, shuffle, shuffleSeed);
+								splitter, toCoNLL, ignoreOverlaps, useBILOU, splitByDocument, ace2005SplitFolds, ace2005SplitFolder, shuffle, shuffleSeed);
 			}
 		}
 	}
@@ -473,7 +492,7 @@ public class ACEReader {
 	private static void printDataset(String outputDir, List<ACEDocument> docs, double[] datasplit, int foldNum,
 			boolean printEntities, boolean printRelations, Tokenizer tokenizer, POSTagger posTagger, DepParser depParser,
 			SentenceParser parser, SentenceSplitter splitter, boolean toCoNLL, boolean ignoreOverlaps, boolean useBILOU,
-			boolean splitByDocument, boolean splitFolds, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
+			boolean splitByDocument, boolean splitFolds, String splitFolder, boolean shuffle, int shuffleSeed) throws FileNotFoundException {
 		List<ACESentence> trainSentences = new ArrayList<ACESentence>();
 		List<ACESentence> devSentences = new ArrayList<ACESentence>();
 		List<ACESentence> testSentences = new ArrayList<ACESentence>();
@@ -481,7 +500,12 @@ public class ACEReader {
 		if(splitByDocument){
 			if (splitFolds) {
 				List<List<ACEDocument>> foldDocs = new ArrayList<>();
-				splitFolds(docs, foldDocs, foldNum, shuffle, shuffleSeed);
+				if (splitFolder == null) {
+					splitFolds(docs, foldDocs, foldNum, shuffle, shuffleSeed);
+				} else {
+					List<List<String>> foldFileNames = readSplits(splitFolder);
+					splitFolds(docs, foldDocs, foldFileNames);
+				}
 				for (int i = 0; i < foldDocs.size(); i++) {
 					foldSentences.add(getSentences(foldDocs.get(i), splitter, ignoreOverlaps));
 				}
@@ -489,7 +513,16 @@ public class ACEReader {
 				List<ACEDocument> trainDocs = new ArrayList<ACEDocument>();
 				List<ACEDocument> devDocs = new ArrayList<ACEDocument>();
 				List<ACEDocument> testDocs = new ArrayList<ACEDocument>();
-				splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
+				if (splitFolder == null) {
+					splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
+				} else {
+					List<List<String>> foldFileNames = readSplits(splitFolder);
+					List<List<ACEDocument>> foldDocs = new ArrayList<>();
+					splitFolds(docs, foldDocs, foldFileNames);
+					trainDocs = foldDocs.get(0);
+					devDocs = foldDocs.get(1);
+					testDocs = foldDocs.get(2);
+				}
 				trainSentences = getSentences(trainDocs, splitter, ignoreOverlaps);
 				devSentences = getSentences(devDocs, splitter, ignoreOverlaps);
 				testSentences = getSentences(testDocs, splitter, ignoreOverlaps);
@@ -759,6 +792,27 @@ public class ACEReader {
 		return result;
 	}
 	
+	private static List<List<String>> readSplits (String splitFile) {
+		List<List<String>> splits = new ArrayList<>();
+		try {
+			File folder = new File(splitFile);
+			File[] files  = folder.listFiles();
+			for(File file : files) {
+				BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.getAbsolutePath()),"UTF-8"));
+				String line = null;
+				List<String> split = new ArrayList<>();
+				while ((line = br.readLine()) != null) {
+					split.add(line);
+				}
+				splits.add(split);
+				br.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return splits;
+	}
+	
 	private static <T> void splitData(List<T> aceObjects, List<T> trainObjects, List<T> devObjects,
 			List<T> testObjects, double[] datasplit, boolean shuffle, int shuffleSeed){
 		int total = aceObjects.size();
@@ -805,6 +859,30 @@ public class ACEReader {
 		System.out.println("Number of folds: "+foldNum);
 		System.out.println("Fold size: "+foldSize);
 		System.out.println("Last Fold Size: "+(total - foldSize * foldNum + foldSize));
+	}
+	
+	private static void splitFolds(List<ACEDocument> aceObjects, List<List<ACEDocument>> foldObjects, List<List<String>> foldFileNames){
+		Map<String, ACEDocument> name2Obj = new HashMap<>();
+		for(ACEDocument doc : aceObjects) {
+			String trimedFileName = doc.fileName.replace(".sgm", "");
+			name2Obj.put(trimedFileName, doc);
+		}
+		if (name2Obj.size() != aceObjects.size()) throw new RuntimeException("not same size?");
+		
+		for (int f = 0; f < foldFileNames.size(); f++) {
+			List<ACEDocument> foldList = new ArrayList<ACEDocument>();
+			List<String> fileNames = foldFileNames.get(f);
+			for(String fileName : fileNames) {
+				ACEDocument doc = name2Obj.get(fileName);
+				foldList.add(doc);
+			}
+			foldObjects.add(foldList);
+			System.out.println("Fold "+(f+1)+" size: "+fileNames.size());
+		}
+		String typeName = aceObjects.get(0).getClass().getName();
+		typeName = typeName.substring(typeName.lastIndexOf(".")+1);
+		System.out.println("Number of objects ("+typeName+"):");
+		System.out.println("Number of folds: "+foldFileNames.size());
 	}
 	
 	private static void printStatistics(List<ACESentence> sentences){

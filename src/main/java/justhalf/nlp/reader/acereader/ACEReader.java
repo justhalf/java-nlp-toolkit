@@ -955,7 +955,9 @@ public class ACEReader {
 							if(stringBuilder.length() > 0){
 								stringBuilder.append("|");
 							}
-							stringBuilder.append(relation.relation.type() + "::" + relation.relation.subtype());
+							Span relSpan = findWordSpan(relation.span, tokens);
+							stringBuilder.append(relation.relation.type() + "::" + relSpan.start + ","+relSpan.end);
+							//stringBuilder.append(relation.relation.type() + "::" + relation.relation.subtype());
 							for(ACEEntityMention mention: relation.args){
 								Span span = findWordSpan(mention.span, tokens);
 								Span headSpan = findWordSpan(mention.headSpan, tokens);

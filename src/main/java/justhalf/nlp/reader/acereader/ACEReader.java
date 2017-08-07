@@ -503,7 +503,7 @@ public class ACEReader {
 				if (splitFolder == null) {
 					splitFolds(docs, foldDocs, foldNum, shuffle, shuffleSeed);
 				} else {
-					List<List<String>> foldFileNames = readSplits(splitFolder);
+					List<List<String>> foldFileNames = readSplits(splitFolder, true);
 					splitFolds(docs, foldDocs, foldFileNames);
 				}
 				for (int i = 0; i < foldDocs.size(); i++) {
@@ -516,7 +516,7 @@ public class ACEReader {
 				if (splitFolder == null) {
 					splitData(docs, trainDocs, devDocs, testDocs, datasplit, shuffle, shuffleSeed);
 				} else {
-					List<List<String>> foldFileNames = readSplits(splitFolder);
+					List<List<String>> foldFileNames = readSplits(splitFolder, false);
 					List<List<ACEDocument>> foldDocs = new ArrayList<>();
 					splitFolds(docs, foldDocs, foldFileNames);
 					trainDocs = foldDocs.get(0);
@@ -792,11 +792,16 @@ public class ACEReader {
 		return result;
 	}
 	
-	private static List<List<String>> readSplits (String splitFile) {
+	private static List<List<String>> readSplits (String splitFile, boolean isFolds) {
 		List<List<String>> splits = new ArrayList<>();
 		try {
 			File folder = new File(splitFile);
 			File[] files  = folder.listFiles();
+			if (!isFolds) {
+				for(File file : files) {
+					if (!file.isDirectory()) splits.add(new ArrayList<>());
+				}
+			}
 			for(File file : files) {
 				BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.getAbsolutePath()),"UTF-8"));
 				String line = null;
@@ -804,7 +809,20 @@ public class ACEReader {
 				while ((line = br.readLine()) != null) {
 					split.add(line);
 				}
-				splits.add(split);
+				if (!isFolds) {
+					if (file.getName().equals("train")) {
+						splits.set(0, split);
+					} else if (file.getName().equals("dev")) {
+						splits.set(1, split);
+					} else if (file.getName().equals("test")) {
+						splits.set(2, split);
+					} else {
+						br.close();
+						throw new RuntimeException("unknow:" + file.getName());
+					}
+				} else {
+					splits.add(split);
+				}
 				br.close();
 			}
 		} catch (IOException e) {
@@ -874,6 +892,7 @@ public class ACEReader {
 			List<String> fileNames = foldFileNames.get(f);
 			for(String fileName : fileNames) {
 				ACEDocument doc = name2Obj.get(fileName);
+				if (doc==null) throw new RuntimeException("null doc?");
 				foldList.add(doc);
 			}
 			foldObjects.add(foldList);

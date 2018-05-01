@@ -970,12 +970,16 @@ public class ACEReader {
 					parseTree = parser.parseCoreLabel(tokens);
 				}
 				if(toCoNLL){
-					List<WordLabel> outputTokens = spansToLabels(sentence.entities, tokens, useBILOU);
+//					List<WordLabel> outputTokens = spansToLabels(sentence.entities, tokens, useBILOU); //use full span
+					List<WordLabel> outputTokens = headSpansToLabels(sentence.entities, tokens, useBILOU); //use head span.
 					if(posTagger != null){
 						for(int i=0; i<tokens.size(); i++){
 							String annotations = "";
 							if(printEntities){
 								annotations += outputTokens.get(i).form;
+							}
+							if (heads != null && depLabels !=null) {
+								annotations += "\t" + heads[i] + "\t" + depLabels[i];
 							}
 							printer.println(String.format("%s\t%s\t%s",tokens.get(i).value(), tokens.get(i).tag(), annotations));
 						}
@@ -987,6 +991,24 @@ public class ACEReader {
 							}
 							printer.println(String.format("%s\t%s",tokens.get(i).value(), annotations));
 						}
+					}
+					if(printRelations){
+						StringBuilder stringBuilder = new StringBuilder();
+						for(ACERelationMention relation: sentence.relations){
+							if(stringBuilder.length() > 0){
+								stringBuilder.append("|");
+							}
+//							Span relSpan = findWordSpan(relation.span, tokens);
+							stringBuilder.append(relation.relation.type());
+							//stringBuilder.append(relation.relation.type() + "::" + relation.relation.subtype());
+							for(ACEEntityMention mention: relation.args){
+//								Span span = findWordSpan(mention.span, tokens);
+								Span headSpan = findWordSpan(mention.headSpan, tokens);
+								stringBuilder.append(String.format(" %s,%s %s", headSpan.start, headSpan.end, mention.label.form));
+								//stringBuilder.append(String.format(" %s,%s,%s,%s %s,%s,%s", span.start, span.end, headSpan.start, headSpan.end, mention.label.form, mention.mentionType.name(), mention.entity.subtype()));
+							}
+						}
+						printer.println(stringBuilder.toString());
 					}
 					printer.println();
 				} else {
@@ -1112,6 +1134,44 @@ public class ACEReader {
 		Arrays.fill(result, null);
 		for(ACEEntityMention mention: mentions){
 			Span span = findWordSpan(mention.span, tokens);
+			String type = mention.label.form;
+			for(int i=span.start; i<span.end; i++){
+				String addition = "";
+				if(result[i] != null){
+					addition = "H";
+				}
+				if(i == span.start && i == span.end-1){
+					if(useBILOU){
+						result[i] = WordLabel.get("U"+addition+"-"+type);
+					} else {
+						result[i] = WordLabel.get("B"+addition+"-"+type);
+					}
+				} else if (i == span.end-1){
+					if(useBILOU){
+						result[i] = WordLabel.get("L"+addition+"-"+type);
+					} else {
+						result[i] = WordLabel.get("I"+addition+"-"+type);
+					}
+				} else if (i == span.start){
+					result[i] = WordLabel.get("B"+addition+"-"+type);
+				} else {
+					result[i] = WordLabel.get("I"+addition+"-"+type);
+				}
+			}
+		}
+		for(int i=0; i<result.length; i++){
+			if(result[i] == null){
+				result[i] = WordLabel.get("O");
+			}
+		}
+		return Arrays.asList(result);
+	}
+	
+	private static List<WordLabel> headSpansToLabels(List<ACEEntityMention> mentions, List<CoreLabel> tokens, boolean useBILOU){
+		WordLabel[] result = new WordLabel[tokens.size()];
+		Arrays.fill(result, null);
+		for(ACEEntityMention mention: mentions){
+			Span span = findWordSpan(mention.headSpan, tokens);
 			String type = mention.label.form;
 			for(int i=span.start; i<span.end; i++){
 				String addition = "";

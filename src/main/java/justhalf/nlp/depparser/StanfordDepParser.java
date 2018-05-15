@@ -7,6 +7,7 @@ import edu.stanford.nlp.international.Language;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.parser.nndep.DependencyParser;
 import edu.stanford.nlp.trees.GrammaticalStructure;
+import edu.stanford.nlp.trees.GrammaticalStructure.Extras;
 import edu.stanford.nlp.trees.TypedDependency;
 
 /**
@@ -53,7 +54,7 @@ public class StanfordDepParser implements DepParser {
 	public List<TypedDependency> parse(List<CoreLabel> sentence) {
 		check(sentence);
 		GrammaticalStructure structure = dependencyParser.predict(sentence);
-		return structure.typedDependenciesCCprocessed();
+		return structure.typedDependencies(Extras.NONE);
 	}
 	
 	private void check(List<CoreLabel> sentence){

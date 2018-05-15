@@ -2,6 +2,7 @@ package justhalf.nlp.sentenceparser;
 
 import java.util.List;
 
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.Tree;
 
@@ -27,6 +28,11 @@ public class StanfordSentenceParser implements SentenceParser {
 	@Override
 	public Tree parse(List<String> sentence) {
 		return parser.parseStrings(sentence);
+	}
+	
+	@Override
+	public Tree parseCoreLabel(List<CoreLabel> sentence) {
+		return parser.parse(sentence);
 	}
 	
 	@Override

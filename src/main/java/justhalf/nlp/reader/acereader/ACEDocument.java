@@ -83,6 +83,7 @@ public class ACEDocument implements Serializable{
 	private static final boolean TEST_STRICT_PARSING = false;
 	private static final long serialVersionUID = -4698300709681532759L;
 
+	public String fileName;
 	public String text;
 	public String fullText;
 	public int offset;
@@ -103,16 +104,16 @@ public class ACEDocument implements Serializable{
 	public Map<String, ACEObject> objectsById;
 	public Map<String, ACEObjectMention<? extends ACEObject>> objectMentionsById;
 	
-	public ACEDocument(String sgmFilename) throws IOException, SAXException {
-		this(sgmFilename, false);
+	public ACEDocument(String fileName, String sgmFilename) throws IOException, SAXException {
+		this(fileName, sgmFilename, false);
 	}
 	
-	public ACEDocument(String sgmFilename, boolean excludeMetadata) throws IOException, SAXException {
-		this(sgmFilename, sgmFilename.replace(".sgm", ".apf.xml"), excludeMetadata);
+	public ACEDocument(String fileName, String sgmFilename, boolean excludeMetadata) throws IOException, SAXException {
+		this(fileName, sgmFilename, sgmFilename.replace(".sgm", ".apf.xml"), excludeMetadata);
 	}
 	
-	public ACEDocument(String sgmFilename, String apfFilename, boolean excludeMetadata) throws IOException, SAXException {
-		this(IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(sgmFilename),
+	public ACEDocument(String fileName, String sgmFilename, String apfFilename, boolean excludeMetadata) throws IOException, SAXException {
+		this(fileName, IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(sgmFilename),
 			 IOUtils.getInputStreamFromURLOrClasspathOrFileSystem(apfFilename),
 			 excludeMetadata);
 	}
@@ -126,7 +127,7 @@ public class ACEDocument implements Serializable{
 	 * @throws IOException
 	 * @throws SAXException
 	 */
-	public ACEDocument(InputStream sgmStream, InputStream apfStream, boolean excludeMetadata) throws IOException, SAXException{
+	public ACEDocument(String fileName, InputStream sgmStream, InputStream apfStream, boolean excludeMetadata) throws IOException, SAXException{
 		DOMParser parser = new DOMParser();
 		String sgmText = IOUtils.slurpInputStream(sgmStream, "UTF-8");
 		sgmText = sgmText.replaceAll("<(/)?BODY>", "<$1BODY_TEXT>");
@@ -143,6 +144,7 @@ public class ACEDocument implements Serializable{
 		} else {
 			this.text = this.fullText;
 		}
+		this.fileName = fileName;
 		this.textInLowercase = this.text.equals(this.text.toLowerCase());
 		this.offset = fullText.indexOf(text);
 		
@@ -296,6 +298,7 @@ public class ACEDocument implements Serializable{
 		Span span = getSpan(extentCharseq);
 		String aceText = extentCharseq.getTextContent();
 		Node head = ((Element)entityMention).getElementsByTagName("HEAD_EXTENT").item(0);
+		if (head == null) throw new RuntimeException("No head span?");
 		Node headCharseq = head == null ? null : ((Element)head).getElementsByTagName("CHARSEQ").item(0);
 		Span headSpan = headCharseq == null ? null : getSpan(headCharseq);
 		String aceHeadText = headCharseq == null ? "" : headCharseq.getTextContent();
